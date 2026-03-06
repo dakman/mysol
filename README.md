@@ -1,47 +1,54 @@
-# 💎 MySol: Immutable Self-Custody Vaults
+# 💎 MySol: Immutable Utility for SOL & USDC Vaults
 
-**MySol** is a high-security, single-file utility for the Solana blockchain. It acts as a financial "seatbelt" by allowing you to create self-custody piggy banks with rules that are physically impossible to break—protecting you from impulsive spending or gambling.
+**MySol** is a high-security, single-file utility built for the Solana ecosystem. It is not a wallet—it is a **Vault Factory**. It helps you create self-custody "Piggy Banks" with on-chain rules that protect your SOL and USDC from impulsive spending or gambling.
 
 ## 🎯 Project Goals
-* **Immutable Discipline:** Use on-chain smart contracts to enforce daily withdrawal limits and time-locks.
+* **Financial Guardrails:** Use on-chain Solana programs to enforce daily withdrawal limits and time-locks.
+* **Pure Solana Ecosystem:** Exclusively designed for **SOL** and native **USDC**.
+* **Utility, Not a Wallet:** MySol creates the vaults; you can still import the keys into any standard wallet (Phantom, Solflare) for easy access.
 * **Zero-Footprint:** A single, portable HTML/JS file under 1,000 lines of code.
-* **True Self-Custody:** You own the keys. No middleman, no central server, and no "admin" access.
-* **Local-First Security:** All sensitive data is encrypted locally using AES-256-GCM via the Web Crypto API.
 
 ---
 
 ## 🚀 Core Features
-* **Multi-Vault Setup:** Create separate "Banks" for Rent, Savings, or Daily Allowance.
-* **On-Chain Enforcement:** If you try to withdraw more than your daily limit, the **Solana Cluster** rejects the transaction at the protocol level.
-* **Time-Window Lock:** Define an "Enforcement Window" (e.g., 90 days) where limits cannot be changed or removed.
-* **Local Encryption:** Your master password derives a key that locks your private keys in `localStorage`.
+* **Vault Factory:** Easily generate new "Banks" for Rent, Savings, or Daily Allowances.
+* **On-Chain Enforcement:** Withdrawal limits are handled by the Solana Cluster. If you try to exceed your limit, the transaction fails at the protocol level.
+* **Time-Window Lock:** Define an "Enforcement Window" where vault rules cannot be modified.
+* **Local-First Security:** Vault data and keys are encrypted locally using AES-256-GCM via the Web Crypto API.
 
 ---
 
 ## 🛠️ Getting Started
 1.  **Download:** Save `mysol.html` to your local machine.
-2.  **Open:** Double-click the file to run it in any modern browser (Chrome/Brave recommended).
-3.  **Unlock:** Set a Master Password to initialize your local encrypted vault.
-4.  **Create:** Initialize a new Piggy Bank by setting a **Daily Limit** and a **Lock Period**.
-5.  **Deposit:** Send SOL to the generated Vault address.
+2.  **Open:** Run it in any modern browser.
+3.  **Create:** Initialize a new Piggy Bank by setting your **Daily Limit** and **Lock Period**.
+4.  **Connect:** Export the generated keys to your favorite Solana wallet for daily use, or keep them inside MySol for maximum discipline.
 
 ---
 
 ## ⛓️ Technical Architecture
 
 
-MySol utilizes **Program Derived Addresses (PDAs)**. Unlike a standard wallet, a PDA has no private key; it is controlled entirely by the logic of the smart contract. 
-1. The **Smart Contract** checks the current timestamp and your `daily_withdrawn` balance.
-2. If the request is within your limits, the contract signs the move of SOL to your main wallet.
-3. If you exceed the limit, the transaction fails—even if you have your master password.
+
+MySol utilizes **Program Derived Addresses (PDAs)**. The SOL/USDC is held by the Solana Program logic:
+1. The **Solana Program** checks the network timestamp and your `daily_withdrawn` balance.
+2. If the request is valid, the program authorizes the transfer to your spending wallet.
+3. You cannot "override" the code, even with your own private keys, until the lock period expires.
+
+---
+
+## 📝 TODOs & Future Roadmap
+* [ ] **Convert Existing Wallets:** Implementation of a "Wrap" feature to easily import existing Solana addresses and convert them into MySol-managed smart contracts.
+* [ ] **One-Click Export:** Seamlessly push vault keys to Phantom/Solflare via standard wallet adapter protocols.
+* [ ] **Mobile Optimization:** Ensure the single-file UI is fully responsive for mobile browser injections.
 
 ---
 
 ## ⚠️ Security Warning
-* **No Password Reset:** There is no "Forgot Password" on the blockchain. If you lose your Master Password, your local vault cannot be decrypted.
-* **Finalized Authority:** To achieve true immutability, the smart contract's upgrade authority must be revoked. This ensures even the developer cannot change the rules of your vault.
+* **No Password Reset:** All data is encrypted locally. If you lose your Master Password, your local vault access cannot be recovered.
+* **Finalized Authority:** To achieve true immutability, the program's upgrade authority must be revoked, making your rules permanent laws of the blockchain.
 
 ---
 
 ## 📜 License
-MIT - Open Source and free to use for personal financial protection.
+MIT - Open Source and free to use for personal financial protection on Solana.
