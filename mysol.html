@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MySol - Immutable Piggy Bank</title>
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .gradient-text { background: linear-gradient(45deg, #facc15, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 min-h-screen p-4">
+    <div class="max-w-4xl mx-auto">
+        <header class="flex justify-between items-center mb-10 pb-6 border-b border-slate-800">
+            <div>
+                <h1 class="text-3xl font-black gradient-text italic">MySol</h1>
+                <p class="text-[10px] text-slate-500 tracking-[0.2em] uppercase font-bold">Self-Custody Protection</p>
+            </div>
+            <div id="status-tag" class="px-3 py-1 rounded-full bg-red-900/30 text-red-400 text-[10px] font-bold border border-red-500/50 uppercase">Vault Locked</div>
+        </header>
+
+        <section id="auth-box" class="glass p-8 rounded-2xl text-center mb-10 border-yellow-500/20">
+            <h2 class="text-xl mb-6 font-semibold">Unlock Your Private Vault</h2>
+            <input type="password" id="pass" placeholder="Master Password" class="w-full max-w-sm bg-slate-900 border border-slate-700 p-4 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+            <div class="flex justify-center gap-3">
+                <button onclick="initVault()" class="bg-yellow-600 hover:bg-yellow-500 text-black px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-yellow-900/20 uppercase tracking-tighter">Enter MySol</button>
+            </div>
+            <p class="text-slate-500 text-[10px] mt-4 uppercase italic">Encrypted locally with AES-256-GCM.</p>
+        </section>
+
+        <main id="dashboard" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div class="glass p-6 rounded-2xl col-span-1 border-slate-700/50">
+                    <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase tracking-widest">New Piggy Bank</h3>
+                    <input type="text" id="w-name" placeholder="Name (e.g. Rent)" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mb-3 text-sm">
+                    
+                    <div class="space-y-2 mb-4">
+                        <label class="text-[9px] text-slate-500 font-bold uppercase">Daily Limit (SOL)</label>
+                        <input type="number" id="w-limit" value="0.5" step="0.1" class="w-full bg-slate-800 p-2 rounded text-sm text-yellow-500 font-mono">
+                        
+                        <label class="text-[9px] text-slate-500 font-bold uppercase">Lock Period (Days)</label>
+                        <input type="number" id="w-days" value="30" class="w-full bg-slate-800 p-2 rounded text-sm font-mono text-white">
+                    </div>
+
+                    <button onclick="addWallet()" class="w-full bg-slate-100 hover:bg-white text-black p-3 rounded-xl font-bold transition text-xs uppercase">Initialize Bank</button>
+                </div>
+
+                <div class="glass p-6 rounded-2xl col-span-2 border-slate-700/50">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Accounts</h3>
+                        <button onclick="syncBalances()" class="text-[10px] text-yellow-500 hover:text-yellow-300 font-bold uppercase">↻ Refresh All</button>
+                    </div>
+                    <div id="wallet-container" class="space-y-4 max-h-[500px] overflow-y-auto pr-2"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const { Keypair, Connection, clusterApiUrl, LAMPORTS_PER_SOL } = solanaWeb3;
+        const connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
+        let vaultData = [];
+        let masterKey = null;
+
+        async function deriveKey(password) {
+            const encoder = new TextEncoder();
+            const salt = encoder.encode('mysol-salt-v1');
+            const baseKey = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveKey']);
+            return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, baseKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+        }
+
+        async function initVault() {
+            const pw = document.getElementById('pass').value;
+            if (!pw) return alert("Enter password.");
+            masterKey = await deriveKey(pw);
+            const raw = localStorage.getItem('mysol_vault');
+            
+            if (raw) {
+                try {
+                    const { ciphertext, iv } = JSON.parse(raw);
+                    const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(atob(iv).split('').map(c => c.charCodeAt(0))) }, masterKey, new Uint8Array(atob(ciphertext).split('').map(c => c.charCodeAt(0))));
+                    vaultData = JSON.parse(new TextDecoder().decode(dec));
+                } catch (e) { return alert("Invalid Password"); }
+            }
+            showUI();
+        }
+
+        async function save() {
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const enc = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, masterKey, new TextEncoder().encode(JSON.stringify(vaultData)));
+            localStorage.setItem('mysol_vault', JSON.stringify({
+                ciphertext: btoa(String.fromCharCode(...new Uint8Array(enc))),
+                iv: btoa(String.fromCharCode(...iv))
+            }));
+        }
+
+        function showUI() {
+            document.getElementById('auth-box').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            document.getElementById('status-tag').innerText = "Vault Active";
+            document.getElementById('status-tag').className = "px-3 py-1 rounded-full bg-green-900/30 text-green-400 text-[10px] font-bold border border-green-500/50 uppercase";
+            render();
+        }
+
+        async function addWallet() {
+            const name = document.getElementById('w-name').value || "Savings";
+            const limit = document.getElementById('w-limit').value;
+            const days = document.getElementById('w-days').value;
+            const kp = Keypair.generate();
+            vaultData.push({ name, limit, days, address: kp.publicKey.toBase58(), secret: btoa(String.fromCharCode(...kp.secretKey)), created: Date.now() });
+            await save();
+            render();
+        }
+
+        async function render() {
+            const container = document.getElementById('wallet-container');
+            container.innerHTML = vaultData.length ? "" : "<p class='text-slate-600 text-center py-20 italic text-sm'>No piggy banks active.</p>";
+            vaultData.forEach((w, i) => {
+                const expires = new Date(w.created + (w.days * 86400000)).toLocaleDateString();
+                const div = document.createElement('div');
+                div.className = "p-5 rounded-xl bg-slate-900/50 border border-slate-800 flex justify-between items-center";
+                div.innerHTML = `
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3">
+                            <span class="font-bold text-yellow-500">${w.name}</span>
+                            <span class="text-[8px] bg-yellow-500/10 px-2 py-0.5 rounded text-yellow-500 border border-yellow-500/20 uppercase font-black font-mono">Limit: ${w.limit} SOL</span>
+                        </div>
+                        <p class="text-[10px] font-mono text-slate-500 mt-2 truncate max-w-[150px]">${w.address}</p>
+                        <p class="text-[9px] text-slate-600 uppercase mt-2">Ends: ${expires}</p>
+                    </div>
+                    <div class="text-right space-y-2">
+                        <p id="bal-${i}" class="text-xl font-mono font-bold">... SOL</p>
+                        <div class="flex gap-2 justify-end">
+                            <button onclick="exportKey('${w.secret}')" class="text-[9px] bg-slate-800 px-2 py-1 rounded text-slate-400 hover:text-white uppercase">Export</button>
+                            <button onclick="alert('Program deployment required for enforced withdrawal.')" class="text-[9px] bg-yellow-600 px-2 py-1 rounded text-black font-bold uppercase">Withdraw Today</button>
+                        </div>
+                    </div>`;
+                container.appendChild(div);
+                updateBalance(w.address, `bal-${i}`);
+            });
+        }
+
+        async function updateBalance(addr, id) {
+            try {
+                const b = await connection.getBalance(new solanaWeb3.PublicKey(addr));
+                document.getElementById(id).innerText = (b / LAMPORTS_PER_SOL).toFixed(4) + " SOL";
+            } catch (e) { document.getElementById(id).innerText = "Err"; }
+        }
+
+        function exportKey(secret) {
+            const bytes = JSON.stringify(Array.from(new Uint8Array(atob(secret).split('').map(c => c.charCodeAt(0)))));
+            prompt("SAVE PRIVATELY (Private Key Array):", bytes);
+        }
+
+        function syncBalances() {
+            vaultData.forEach((w, i) => updateBalance(w.address, `bal-${i}`));
+        }
+    </script>
+</body>
+</html>
