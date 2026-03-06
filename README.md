@@ -1,54 +1,22 @@
-# 💎 MySol: Immutable Utility for SOL & USDC Vaults
+# MySOL | Blockchain Vault Burner
 
-**MySol** is a high-security, single-file utility built for the Solana ecosystem. It is not a wallet—it is a **Vault Factory**. It helps you create self-custody "Piggy Banks" with on-chain rules that protect your SOL and USDC from impulsive spending or gambling.
+**MySOL** is a zero-dependency, hardware-grade discipline tool for the Solana blockchain. It allows users to "burn" immutable spending rules into the ledger for any specific wallet.
 
-## 🎯 Project Goals
-* **Financial Guardrails:** Use on-chain Solana programs to enforce daily withdrawal limits and time-locks.
-* **Pure Solana Ecosystem:** Exclusively designed for **SOL** and native **USDC**.
-* **Utility, Not a Wallet:** MySol creates the vaults; you can still import the keys into any standard wallet (Phantom, Solflare) for easy access.
-* **Zero-Footprint:** A single, portable HTML/JS file under 1,000 lines of code.
+## 🛠 How It Works
+1. **The Burn:** Using the MySOL Dashboard, you connect a wallet and upload a **Daily Spending Limit** and an **Enforcement Period**.
+2. **On-Chain Enforcement:** These rules are stored in a Program Derived Address (PDA). The Smart Contract intercepts all withdrawal requests. If a request exceeds the daily limit during the enforcement period, the blockchain rejects it at the protocol level.
+3. **The Self-Destruct:** Once the enforcement term (e.g., 90 days) expires, the contract's restrictive logic **automatically self-destructs**. The vault effectively "dissolves" the rules, restoring the wallet to a normal, unrestricted state.
 
----
+## 🚀 Quick Start
+1. **Prepare:** Create a new wallet in Solflare/Phantom (e.g., "Gamba Funds").
+2. **Configure:** Set your Asset (SOL/USDC), Limit, and Lock Duration.
+3. **Deploy:** Click **Sign & Burn**. The rules are now permanent for the chosen duration.
+4. **Clean Up:** Once the transaction is confirmed, the local project files can be deleted. The rules now exist only on the blockchain.
 
-## 🚀 Core Features
-* **Vault Factory:** Easily generate new "Banks" for Rent, Savings, or Daily Allowances.
-* **On-Chain Enforcement:** Withdrawal limits are handled by the Solana Cluster. If you try to exceed your limit, the transaction fails at the protocol level.
-* **Time-Window Lock:** Define an "Enforcement Window" where vault rules cannot be modified.
-* **Local-First Security:** Vault data and keys are encrypted locally using AES-256-GCM via the Web Crypto API.
-
----
-
-## 🛠️ Getting Started
-1.  **Download:** Save `mysol.html` to your local machine.
-2.  **Open:** Run it in any modern browser.
-3.  **Create:** Initialize a new Piggy Bank by setting your **Daily Limit** and **Lock Period**.
-4.  **Connect:** Export the generated keys to your favorite Solana wallet for daily use, or keep them inside MySol for maximum discipline.
+## 🛡 Strategies
+* **Gamba Guard:** Set a $50/day limit for 90 days to prevent tilt.
+* **Fort Knox:** Set a 0 limit for 365 days for absolute HODLing.
+* **Gas Saver:** Set a 0.05 SOL limit to ensure you always have transaction fees.
 
 ---
-
-## ⛓️ Technical Architecture
-
-
-
-MySol utilizes **Program Derived Addresses (PDAs)**. The SOL/USDC is held by the Solana Program logic:
-1. The **Solana Program** checks the network timestamp and your `daily_withdrawn` balance.
-2. If the request is valid, the program authorizes the transfer to your spending wallet.
-3. You cannot "override" the code, even with your own private keys, until the lock period expires.
-
----
-
-## 📝 TODOs & Future Roadmap
-* [ ] **Convert Existing Wallets:** Implementation of a "Wrap" feature to easily import existing Solana addresses and convert them into MySol-managed smart contracts.
-* [ ] **One-Click Export:** Seamlessly push vault keys to Phantom/Solflare via standard wallet adapter protocols.
-* [ ] **Mobile Optimization:** Ensure the single-file UI is fully responsive for mobile browser injections.
-
----
-
-## ⚠️ Security Warning
-* **No Password Reset:** All data is encrypted locally. If you lose your Master Password, your local vault access cannot be recovered.
-* **Finalized Authority:** To achieve true immutability, the program's upgrade authority must be revoked, making your rules permanent laws of the blockchain.
-
----
-
-## 📜 License
-MIT - Open Source and free to use for personal financial protection on Solana.
+**WARNING:** During the enforcement period, there is no "undo" button. Not even the creator of the contract can bypass the rules once they are burned to the ledger.
