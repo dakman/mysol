@@ -35,6 +35,9 @@ pub mod mysol_program {
     pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         require!(amount > 0, VaultError::InvalidAmount);
 
+        let vault_lamports = vault.to_account_info().lamports();
+        require!(vault_lamports >= amount, VaultError::InsufficientFunds);
+        
         let vault = &mut ctx.accounts.vault;
         let clock = Clock::get()?;
 
@@ -62,9 +65,6 @@ pub mod mysol_program {
             vault.withdrawn_today = new_total;
             vault.last_withdraw_ts = clock.unix_timestamp;
         }
-
-        let vault_lamports = vault.to_account_info().lamports();
-        require!(vault_lamports >= amount, VaultError::InsufficientFunds);
 
         // Direct lamport transfer — correct approach for PDA-owned SOL
         **vault.to_account_info().try_borrow_mut_lamports()? -= amount;
