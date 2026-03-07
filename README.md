@@ -2,8 +2,10 @@
 
 **MySOL Vault** is a non-custodial Solana protocol that allows users to lock **SOL** and **USDC** into a Program Derived Address (PDA) governed by immutable, on-chain spending limits.
 
-* **Live dApp:** [Launch MySOL Vault (GitHub Pages)](https://dakman.github.io/mysol/mysol.html)
-* **On-Chain Program:** [View on Solana Explorer (Devnet)](https://explorer.solana.com/address/Ed3m1fhxygWysgyLSLryp3haQNcvMri8MkrqGvNDw4bt?cluster=devnet)
+* **Live dApp:** [Launch MySOL Vault (GitHub Pages)](https://dakman.github.io/mysol/mysol.html) 
+    * *Note: The dApp is set to **Devnet** mode by default for safe testing.*
+* **On-Chain Program:** [View on Solscan (Devnet)](https://solscan.io/account/Ed3m1fhxygWysgyLSLryp3haQNcvMri8MkrqGvNDw4bt?cluster=devnet)
+* **Smart Contract Logic:** The core enforcement rules are defined in [`lib.rs`](./lib.rs).
 
 ---
 
@@ -77,7 +79,7 @@ Unlike systems that reset at a fixed time, MySOL Vault uses a **Relative Rolling
 
 * **Non-Custodial:** Funds are held by the program code on-chain, not by a third-party developer.
 * **Mainnet Guard:** The `close_vault` function currently allows for early closing (Devnet mode). 
-* **Crucial:** Before Mainnet deployment, the `EnforcementActive` check in the Rust code must be enabled to prevent users from "deleting" their rules to bypass limits.
+* **Crucial:** Before Mainnet deployment, the `EnforcementActive` check in [`lib.rs`](./lib.rs) must be enabled to prevent users from "deleting" their rules to bypass limits.
 
 ---
 
