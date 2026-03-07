@@ -2,6 +2,8 @@ use anchor_lang::prelude::*;
 
 declare_id!("Ed3m1fhxygWysgyLSLryp3haQNcvMri8MkrqGvNDw4bt");
 
+const SECONDS_PER_DAY: i64 = 86400;
+
 #[program]
 pub mod mysol_program {
     use super::*;
@@ -21,7 +23,7 @@ pub mod mysol_program {
             .unix_timestamp
             .checked_add(
                 enforce_days
-                    .checked_mul(86400)
+                    .checked_mul(SECONDS_PER_DAY)
                     .ok_or(VaultError::ArithmeticOverflow)?,
             )
             .ok_or(VaultError::ArithmeticOverflow)?;
@@ -43,7 +45,7 @@ pub mod mysol_program {
                 .checked_sub(vault.last_withdraw_ts)
                 .ok_or(VaultError::ArithmeticOverflow)?;
 
-            if elapsed > 86400 {
+            if elapsed > SECONDS_PER_DAY {
                 vault.withdrawn_today = 0;
             }
 
