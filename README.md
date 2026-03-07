@@ -4,7 +4,7 @@
 
 This repository contains:
 1. **Smart Contract:** An Anchor-based program (`mysol_program`) that enforces limits.
-2. **Frontend:** A lightweight dApp (`mysol.html`) designed for mobile wallet browsers.
+2. **Frontend:** A lightweight dApp (`mysol.html`) designed specifically for mobile wallet browsers.
 
 ---
 
@@ -13,8 +13,8 @@ This repository contains:
 The core motivation is **Self-Sovereign Discipline**. In a 24/7 liquid market, the greatest risk to a user's capital is often their own impulsive behavior.
 
 * **Eliminating "Hot Wallet" Risk:** Traditional wallets allow you to drain 100% of your funds in seconds. If your phone is snatched or you experience a moment of poor judgment, your capital is gone.
-* **Willpower as a Service:** By moving enforcement to the blockchain, you outsource your discipline to an immutable auditor. You don't have to "try" to spend less; the network simply won't let you.
-* **Anti-Extortion:** In a hypothetical "wrench attack," an attacker can only force you to withdraw up to your daily limit. The rest of your capital remains locked behind a time-based wall they cannot break.
+* **Willpower as a Service:** By moving enforcement to the blockchain, you outsource your discipline to an immutable auditor. The network simply won't let you overspend.
+* **Anti-Extortion:** In a hypothetical "wrench attack," an attacker can only force you to withdraw up to your daily limit. The bulk of your capital remains locked behind a time-based wall they cannot break.
 
 ---
 
@@ -27,7 +27,7 @@ The protocol uses a **Program Derived Address (PDA)**. Unlike a standard wallet,
 ### 1. The Rolling 24-Hour Window
 Unlike systems that reset at a fixed time (like Midnight UTC), MySOL Vault uses a **Relative Rolling Window**:
 * When you withdraw, the program records the `unix_timestamp`.
-* On the next withdrawal attempt, the program calculates the time elapsed.
+* On the next withdrawal attempt, the program calculates the time elapsed since that timestamp.
 * If the difference is `> 86,400 seconds` (24 hours), your "Spent Today" counter resets to zero.
 
 ### 2. Logic Gatekeepers
@@ -40,12 +40,10 @@ Unlike systems that reset at a fixed time (like Midnight UTC), MySOL Vault uses 
 
 ## 🎯 Use Cases
 
-| User Profile | Use Case |
-| :--- | :--- |
-| **The Trader** | Lock away "Profit" into the vault so it cannot be revenge-traded back into the market the same day. |
-| **The Student** | Set a daily allowance for living expenses while keeping the bulk of your SOL locked until the semester ends. |
-| **The Security Conscious** | Keep your primary stack in a Vault. If your mobile wallet is compromised, a thief can only "trickle" out small amounts daily. |
-| **The Long-Term HODLer** | Use a 365-day enforcement period with a low limit to ensure you don't panic-sell during a pump. |
+* **The Trader:** Lock away "Profit" into the vault so it cannot be revenge-traded back into the market the same day.
+* **The Student:** Set a daily allowance for living expenses while keeping the bulk of your SOL locked until the semester ends.
+* **The Security Conscious:** Keep your primary stack in a Vault. If your mobile wallet is compromised, a thief can only "trickle" out small amounts daily.
+* **The Long-Term HODLer:** Use a 365-day enforcement period with a low limit to ensure you don't panic-sell during a pump.
 
 ---
 
@@ -63,11 +61,22 @@ Unlike systems that reset at a fixed time (like Midnight UTC), MySOL Vault uses 
 
 ---
 
+## 📊 Program Metadata
+
+| Field | Value |
+| :--- | :--- |
+| **Program ID** | `Ed3m1fhxygWysgyLSLryp3haQNcvMri8MkrqGvNDw4bt` |
+| **Framework** | Anchor 0.30.1 |
+| **Account Seeds** | `[b"vault", user_pubkey]` |
+| **Account Space** | 8 + 32 + 8 + 8 + 8 + 8 (72 bytes) |
+
+---
+
 ## ⚠️ Security Architecture
 
 * **Non-Custodial:** Funds are held by the program code on-chain, not by a third-party developer.
 * **Mainnet Guard:** The `close_vault` function currently allows for early closing (Devnet mode). 
-* **Note:** Before Mainnet deployment, the `EnforcementActive` check in the Rust code must be enabled to prevent users from "deleting" their rules to bypass limits.
+* **Crucial:** Before Mainnet deployment, the `EnforcementActive` check in the Rust code must be enabled to prevent users from "deleting" their rules to bypass limits.
 
 ---
 
@@ -81,9 +90,3 @@ Unlike systems that reset at a fixed time (like Midnight UTC), MySOL Vault uses 
 ```bash
 # No dependencies required to view the UI
 open mysol.html
-
-Field,Value
-Program ID,Ed3m1fhxygWysgyLSLryp3haQNcvMri8MkrqGvNDw4bt
-Framework,Anchor 0.30.1
-Account Seeds,"[b""vault"", user_pubkey]"
-Account Space,8 + 32 + 8 + 8 + 8 + 8 (72 bytes)
