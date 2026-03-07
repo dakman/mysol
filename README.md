@@ -1,10 +1,10 @@
 # MySOL Vault: Immutable Spending Rules
 
-**MySOL Vault** is a non-custodial Solana protocol that allows users to lock SOL into a Program Derived Address (PDA) governed by immutable, on-chain spending limits. 
+**MySOL Vault** is a non-custodial Solana protocol that allows users to lock **SOL** and **USDC** into a Program Derived Address (PDA) governed by immutable, on-chain spending limits.
 
 This repository contains:
-1. **Smart Contract:** An Anchor-based program (`mysol_program`) that enforces limits.
-2. **Frontend:** A lightweight dApp (`mysol.html`) designed specifically for mobile wallet browsers.
+1. **Smart Contract:** An Anchor-based program (`mysol_program`) that enforces limits via Cross-Program Invocations (CPI).
+2. **Frontend:** A lightweight dApp (`mysol.html`) optimized for mobile wallet browsers.
 
 ---
 
@@ -14,36 +14,36 @@ The core motivation is **Self-Sovereign Discipline**. In a 24/7 liquid market, t
 
 * **Eliminating "Hot Wallet" Risk:** Traditional wallets allow you to drain 100% of your funds in seconds. If your phone is snatched or you experience a moment of poor judgment, your capital is gone.
 * **Willpower as a Service:** By moving enforcement to the blockchain, you outsource your discipline to an immutable auditor. The network simply won't let you overspend.
-* **Anti-Extortion:** In a hypothetical "wrench attack," an attacker can only force you to withdraw up to your daily limit. The bulk of your capital remains locked behind a time-based wall they cannot break.
+* **Anti-Extortion:** In a "wrench attack," an attacker can only force you to withdraw up to your daily limit. The bulk of your capital remains locked behind a time-based wall they cannot break.
 
 ---
 
-## 🛠 How It Works: Technical Deep Dive
+## 🛠 Multi-Asset Support: SOL & USDC
 
-The protocol uses a **Program Derived Address (PDA)**. Unlike a standard wallet, a PDA has no private key. It can only be moved by the logic defined in the smart contract.
+MySOL Vault handles both native Solana and SPL Tokens (specifically USDC).
+
+* **Native SOL:** Handled via direct lamport reassignment from the Vault PDA to the user.
+* **USDC (SPL Token):** The vault creates an **Associated Token Account (ATA)** owned by the Vault PDA. To withdraw, the program performs a `transfer_checked` CPI (Cross-Program Invocation) to the Solana Token Program, signing with the PDA's seeds.
 
 
 
 ### 1. The Rolling 24-Hour Window
-Unlike systems that reset at a fixed time (like Midnight UTC), MySOL Vault uses a **Relative Rolling Window**:
+Unlike systems that reset at a fixed time, MySOL Vault uses a **Relative Rolling Window**:
 * When you withdraw, the program records the `unix_timestamp`.
-* On the next withdrawal attempt, the program calculates the time elapsed since that timestamp.
-* If the difference is `> 86,400 seconds` (24 hours), your "Spent Today" counter resets to zero.
+* On the next attempt, the program checks if `> 86,400 seconds` (24 hours) have passed.
+* If yes, your "Spent Today" counter resets, allowing for a new withdrawal up to your limit.
 
 ### 2. Logic Gatekeepers
 * **`initialize_vault`**: Writes the rules. Once set, the `expiry_date` is a hard-coded deadline.
-* **`withdraw`**: The gatekeeper. It checks your balance, your limit, and the clock before executing a direct lamport transfer.
-
-
+* **`withdraw`**: The gatekeeper. It checks your balance, your limit, and the clock before executing the transfer.
 
 ---
 
 ## 🎯 Use Cases
 
-* **The Trader:** Lock away "Profit" into the vault so it cannot be revenge-traded back into the market the same day.
-* **The Student:** Set a daily allowance for living expenses while keeping the bulk of your SOL locked until the semester ends.
-* **The Security Conscious:** Keep your primary stack in a Vault. If your mobile wallet is compromised, a thief can only "trickle" out small amounts daily.
-* **The Long-Term HODLer:** Use a 365-day enforcement period with a low limit to ensure you don't panic-sell during a pump.
+* **The Profit Protector:** Lock away your daily trading profits in USDC so you don't trade them back into the market during a "tilt."
+* **The Living Allowance:** Deposit your monthly budget in USDC and set a daily limit (e.g., $50/day) to ensure your rent money lasts the whole month.
+* **The Security Layer:** Keep your primary stack in the Vault. If your mobile wallet is compromised, a thief can only "trickle" out small amounts daily, giving you time to move the remaining funds using a recovery key (if implemented) or wait out the clock.
 
 ---
 
@@ -55,9 +55,9 @@ Unlike systems that reset at a fixed time (like Midnight UTC), MySOL Vault uses 
 
 ### Operation Steps
 1. **Connect Wallet:** Link your wallet via the UI.
-2. **Burn Rules:** Set your Daily Limit and Enforcement Days. Once initialized, the blockchain enforces these rules—no exceptions.
-3. **Fund:** Send SOL to the Vault PDA. 
-4. **Spend:** Withdraw as needed. The dApp provides a live dashboard showing your "Remaining Today" balance and a usage progress bar.
+2. **Burn Rules:** Set your Daily Limit (for both SOL and USDC) and Enforcement Days.
+3. **Fund:** Send SOL or USDC to the Vault PDA address shown in the dashboard.
+4. **Spend:** Withdraw as needed. The dApp provides a live dashboard showing your "Remaining Today" balance.
 
 ---
 
