@@ -9,7 +9,7 @@
 
 ---
 
-## 🧠 Motivations: Why Use a Spending Vault?
+## Motivations: Why Use a Spending Vault?
 
 The core motivation is **Self-Sovereign Discipline**. In a 24/7 liquid market, the greatest risk to a user's capital is often their own impulsive behavior.
 
