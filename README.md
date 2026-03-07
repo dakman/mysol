@@ -2,9 +2,8 @@
 
 **MySOL Vault** is a non-custodial Solana protocol that allows users to lock **SOL** and **USDC** into a Program Derived Address (PDA) governed by immutable, on-chain spending limits.
 
-This repository contains:
-1. **Smart Contract:** An Anchor-based program (`mysol_program`) that enforces limits via Cross-Program Invocations (CPI).
-2. **Frontend:** A lightweight dApp (`mysol.html`) optimized for mobile wallet browsers.
+* **Live dApp:** [Launch MySOL Vault (GitHub Pages)](https://dakman.github.io/mysol/mysol.html)
+* **On-Chain Program:** [View on Solana Explorer (Devnet)](https://explorer.solana.com/address/Ed3m1fhxygWysgyLSLryp3haQNcvMri8MkrqGvNDw4bt?cluster=devnet)
 
 ---
 
@@ -23,27 +22,29 @@ The core motivation is **Self-Sovereign Discipline**. In a 24/7 liquid market, t
 MySOL Vault handles both native Solana and SPL Tokens (specifically USDC).
 
 * **Native SOL:** Handled via direct lamport reassignment from the Vault PDA to the user.
-* **USDC (SPL Token):** The vault creates an **Associated Token Account (ATA)** owned by the Vault PDA. To withdraw, the program performs a `transfer_checked` CPI (Cross-Program Invocation) to the Solana Token Program, signing with the PDA's seeds.
+* **USDC (SPL Token):** The vault creates an Associated Token Account (ATA) owned by the Vault PDA. Withdrawals are executed via `transfer_checked` CPI (Cross-Program Invocation).
 
 
 
 ### 1. The Rolling 24-Hour Window
 Unlike systems that reset at a fixed time, MySOL Vault uses a **Relative Rolling Window**:
 * When you withdraw, the program records the `unix_timestamp`.
-* On the next attempt, the program checks if `> 86,400 seconds` (24 hours) have passed.
-* If yes, your "Spent Today" counter resets, allowing for a new withdrawal up to your limit.
+* On the next attempt, the program checks if `> 86,400 seconds` (24 hours) have passed since the *last* withdrawal.
+* If yes, your "Spent Today" counter resets, allowing for a new withdrawal.
 
 ### 2. Logic Gatekeepers
 * **`initialize_vault`**: Writes the rules. Once set, the `expiry_date` is a hard-coded deadline.
 * **`withdraw`**: The gatekeeper. It checks your balance, your limit, and the clock before executing the transfer.
 
+
+
 ---
 
 ## 🎯 Use Cases
 
-* **The Profit Protector:** Lock away your daily trading profits in USDC so you don't trade them back into the market during a "tilt."
-* **The Living Allowance:** Deposit your monthly budget in USDC and set a daily limit (e.g., $50/day) to ensure your rent money lasts the whole month.
-* **The Security Layer:** Keep your primary stack in the Vault. If your mobile wallet is compromised, a thief can only "trickle" out small amounts daily, giving you time to move the remaining funds using a recovery key (if implemented) or wait out the clock.
+* **The Profit Protector:** Lock away daily trading profits in USDC so you don't trade them back into the market during a "tilt."
+* **The Living Allowance:** Deposit your monthly budget in USDC and set a daily limit (e.g., $50/day) to ensure your rent money lasts.
+* **The Security Layer:** Keep your primary stack in the Vault. If your mobile wallet is compromised, a thief can only "trickle" out small amounts daily, giving you time to respond.
 
 ---
 
@@ -51,13 +52,13 @@ Unlike systems that reset at a fixed time, MySOL Vault uses a **Relative Rolling
 
 ### Prerequisites
 * **Wallet:** Use the **Solflare** or **Phantom** mobile app.
-* **Environment:** Open `mysol.html` within the **built-in dApp browser** of these wallets.
+* **Environment:** Open the [Live Link](https://dakman.github.io/mysol/mysol.html) within the **built-in dApp browser** of these wallets.
 
 ### Operation Steps
-1. **Connect Wallet:** Link your wallet via the UI.
-2. **Burn Rules:** Set your Daily Limit (for both SOL and USDC) and Enforcement Days.
-3. **Fund:** Send SOL or USDC to the Vault PDA address shown in the dashboard.
-4. **Spend:** Withdraw as needed. The dApp provides a live dashboard showing your "Remaining Today" balance.
+1.  **Connect Wallet:** Link your wallet via the UI.
+2.  **Burn Rules:** Set your Daily Limit (for SOL and USDC) and Enforcement Days.
+3.  **Fund:** Send SOL or USDC to the Vault PDA address shown in your dashboard.
+4.  **Spend:** Withdraw as needed. The dApp provides a live dashboard showing your "Remaining Today" balance.
 
 ---
 
@@ -83,9 +84,9 @@ Unlike systems that reset at a fixed time, MySOL Vault uses a **Relative Rolling
 ## 💻 Local Development
 
 **To run locally:**
-1. Clone this repository.
-2. Open `mysol.html` in your browser or dApp browser.
-3. Set your wallet to **Devnet** for testing.
+1.  Clone this repository.
+2.  Open `mysol.html` in your browser or dApp browser.
+3.  Set your wallet to **Devnet** for testing.
 
 ```bash
 # No dependencies required to view the UI
