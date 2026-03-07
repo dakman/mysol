@@ -2,160 +2,851 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySol - Immutable Piggy Bank</title>
-    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>MySOL | Spending Vault</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
-        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
-        .gradient-text { background: linear-gradient(45deg, #facc15, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        :root {
+            --sol: #eb5424;
+            --bg: #070707;
+            --tile: #101010;
+            --tile-border: #1c1c1c;
+            --success: #14F195;
+            --warn: #f1c40f;
+            --text: #ccc;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+        body {
+            font-family: -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── App shell ── */
+        .app {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        /* ── Top bar ── */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-bottom: 1px solid #181818;
+            background: #080808;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .topbar-brand { display: flex; align-items: center; gap: 10px; }
+        .topbar-brand h1 { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
+        .topbar-brand .sub { font-size: 11px; color: #444; margin-top: 1px; }
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+        .net-pill {
+            display: flex; align-items: center; gap: 6px;
+            padding: 5px 10px; border-radius: 20px;
+            background: #111; border: 1px solid #222;
+            font-size: 11px; color: #555;
+        }
+        .net-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--warn); flex-shrink: 0; }
+        .net-dot.live { background: var(--success); }
+        .net-pill select { background: transparent; border: none; color: #666; font-size: 11px; outline: none; cursor: pointer; }
+        #connect-btn-top {
+            padding: 8px 16px; border-radius: 20px; border: none;
+            background: var(--sol); color: #fff; font-weight: 700;
+            font-size: 12px; cursor: pointer; transition: opacity 0.2s;
+            white-space: nowrap;
+        }
+        #connect-btn-top.connected { background: var(--success); color: #000; }
+        #connect-btn-top:disabled { opacity: 0.5; cursor: default; }
+
+        /* ── Grid ── */
+        .grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 1px;
+            background: #181818; /* gap colour */
+        }
+
+        /* ── Tile ── */
+        .tile {
+            background: var(--tile);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: opacity 0.3s;
+        }
+        .tile.locked { opacity: 0.3; pointer-events: none; }
+        .tile.done   { opacity: 0.65; }
+        .tile-head { display: flex; align-items: flex-start; justify-content: space-between; }
+        .tile-num {
+            width: 26px; height: 26px; border-radius: 50%;
+            background: #1e1e1e; color: #555;
+            font-size: 11px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .tile.active .tile-num { background: var(--sol); color: #fff; }
+        .tile.done   .tile-num { background: var(--success); color: #000; }
+        .tile-label { font-size: 10px; color: #333; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+        .tile-title { font-size: 14px; font-weight: 700; color: #fff; margin-top: 2px; line-height: 1.2; }
+        .tile-desc  { font-size: 11px; color: #3a3a3a; line-height: 1.5; flex-shrink: 0; }
+        .tile-body  { display: flex; flex-direction: column; gap: 8px; flex: 1; justify-content: flex-start; }
+
+        /* ── Stats grid inside tile ── */
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .stat { background: #0a0a0a; border-radius: 8px; padding: 8px 10px; }
+        .stat-label { font-size: 9px; color: #333; text-transform: uppercase; font-weight: 700; margin-bottom: 3px; }
+        .stat-value { font-size: 13px; font-weight: 700; color: #fff; }
+        .stat-value.good   { color: var(--success); }
+        .stat-value.warn   { color: var(--warn); }
+        .stat-value.danger { color: var(--sol); }
+        .stat.wide { grid-column: 1 / -1; }
+
+        /* ── Progress ── */
+        .prog-wrap { background: #1a1a1a; border-radius: 3px; height: 4px; overflow: hidden; margin-top: 6px; }
+        .prog-bar  { height: 4px; border-radius: 3px; background: var(--success); transition: width 0.5s; }
+        .prog-bar.warn   { background: var(--warn); }
+        .prog-bar.danger { background: var(--sol); }
+
+        /* ── Fields ── */
+        .field { display: flex; flex-direction: column; gap: 5px; }
+        .field label { font-size: 10px; color: #444; text-transform: uppercase; font-weight: 700; letter-spacing: 0.4px; }
+        .field input {
+            width: 100%; padding: 9px 11px;
+            background: #0a0a0a; border: 1px solid #1e1e1e;
+            color: #fff; border-radius: 9px;
+            font-size: 15px; font-weight: 600; outline: none;
+            transition: border-color 0.2s;
+        }
+        .field input:focus { border-color: #333; }
+        .hint { font-size: 10px; color: #333; font-family: monospace; line-height: 1.4; }
+        .hint.good   { color: var(--success); }
+        .hint.warn   { color: var(--warn); }
+        .hint.danger { color: var(--sol); }
+
+        /* ── Buttons ── */
+        .btn {
+            width: 100%; padding: 11px;
+            border-radius: 9px; border: none;
+            font-weight: 700; cursor: pointer;
+            font-size: 13px; transition: opacity 0.2s, transform 0.1s;
+            letter-spacing: 0.3px;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { opacity: 0.12; cursor: not-allowed; transform: none; }
+        .btn-sol   { background: var(--sol); color: #fff; }
+        .btn-good  { background: var(--success); color: #000; }
+        .btn-ghost { background: transparent; border: 1.5px solid #252525; color: #555; font-size: 11px; padding: 9px; }
+        .btn-ghost-sol  { background: transparent; border: 1.5px solid #3a1a0a; color: var(--sol); }
+        .btn-ghost-good { background: transparent; border: 1.5px solid #0a2a1a; color: var(--success); }
+        .btn-ghost-warn { background: transparent; border: 1.5px solid #2a2000; color: var(--warn); font-size: 11px; padding: 9px; }
+
+        /* ── Alerts ── */
+        .alert { border-radius: 8px; padding: 10px 12px; font-size: 11px; line-height: 1.5; }
+        .alert-warn    { background: #140f00; border: 1px solid #2a2000; color: var(--warn); }
+        .alert-success { background: #081a08; border: 1px solid #0e2a0e; color: var(--success); }
+        .alert-info    { background: #0a0a0a; border: 1px solid #1e1e1e; color: #444; }
+
+        /* ── PDA row ── */
+        .pda-row {
+            display: flex; align-items: center; justify-content: space-between;
+            background: #0a0a0a; border-radius: 7px; padding: 8px 10px;
+        }
+        .pda-label { font-size: 9px; color: #333; text-transform: uppercase; font-weight: 700; white-space: nowrap; margin-right: 8px; }
+        .pda-val   { font-size: 10px; color: #444; font-family: monospace; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pda-row a { font-size: 10px; color: #333; text-decoration: none; white-space: nowrap; margin-left: 6px; }
+        .pda-row a:hover { color: #888; }
+
+        /* ── Status bar ── */
+        .status-bar { font-size: 10px; color: #333; font-family: monospace; word-break: break-all; min-height: 13px; text-align: center; }
+        .status-bar.ok   { color: var(--success); }
+        .status-bar.err  { color: var(--sol); }
+        .status-bar.warn { color: var(--warn); }
+
+        /* ── Faucet footer ── */
+        .info-point { display: flex; align-items: flex-start; gap: 10px; }
+        .info-icon { font-size: 15px; flex-shrink: 0; margin-top: 2px; }
+        .info-point div { font-size: 12px; color: #888; line-height: 1.5; }
+        .info-point strong { color: #ccc; font-size: 12px; display: block; margin-bottom: 1px; }
+        .footer { text-align: center; padding: 12px; font-size: 11px; color: #252525; border-top: 1px solid #141414; }
+        .footer a { color: #333; text-decoration: none; }
+        .footer a:hover { color: #666; }
+
+        /* ════════════════════════════════
+           MOBILE — single column stack
+           ════════════════════════════════ */
+        @media (max-width: 768px) {
+            .topbar { padding: 14px 16px; }
+            .topbar-brand .sub { display: none; }
+            .grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+                background: var(--bg);
+                gap: 0;
+            }
+            .tile {
+                min-height: unset;
+                padding: 22px 18px;
+                border-bottom: 1px solid #181818;
+            }
+        }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-200 min-h-screen p-4">
-    <div class="max-w-4xl mx-auto">
-        <header class="flex justify-between items-center mb-10 pb-6 border-b border-slate-800">
+<body>
+<div class="app">
+
+    <!-- ── Top bar ── -->
+    <div class="topbar">
+        <div class="topbar-brand">
             <div>
-                <h1 class="text-3xl font-black gradient-text italic">MySol</h1>
-                <p class="text-[10px] text-slate-500 tracking-[0.2em] uppercase font-bold">Self-Custody Protection</p>
+                <h1>MySOL Vault</h1>
+                <div class="sub">Immutable spending rules on Solana</div>
             </div>
-            <div id="status-tag" class="px-3 py-1 rounded-full bg-red-900/30 text-red-400 text-[10px] font-bold border border-red-500/50 uppercase">Vault Locked</div>
-        </header>
-
-        <section id="auth-box" class="glass p-8 rounded-2xl text-center mb-10 border-yellow-500/20">
-            <h2 class="text-xl mb-6 font-semibold">Unlock Your Private Vault</h2>
-            <input type="password" id="pass" placeholder="Master Password" class="w-full max-w-sm bg-slate-900 border border-slate-700 p-4 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-yellow-500">
-            <div class="flex justify-center gap-3">
-                <button onclick="initVault()" class="bg-yellow-600 hover:bg-yellow-500 text-black px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-yellow-900/20 uppercase tracking-tighter">Enter MySol</button>
+        </div>
+        <div class="topbar-right">
+            <div class="net-pill">
+                <span class="net-dot" id="net-dot"></span>
+                <select id="network">
+                    <option value="devnet">Devnet</option>
+                    <option value="mainnet-beta">Mainnet</option>
+                </select>
             </div>
-            <p class="text-slate-500 text-[10px] mt-4 uppercase italic">Encrypted locally with AES-256-GCM.</p>
-        </section>
-
-        <main id="dashboard" class="hidden">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                <div class="glass p-6 rounded-2xl col-span-1 border-slate-700/50">
-                    <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase tracking-widest">New Piggy Bank</h3>
-                    <input type="text" id="w-name" placeholder="Name (e.g. Rent)" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-lg mb-3 text-sm">
-                    
-                    <div class="space-y-2 mb-4">
-                        <label class="text-[9px] text-slate-500 font-bold uppercase">Daily Limit (SOL)</label>
-                        <input type="number" id="w-limit" value="0.5" step="0.1" class="w-full bg-slate-800 p-2 rounded text-sm text-yellow-500 font-mono">
-                        
-                        <label class="text-[9px] text-slate-500 font-bold uppercase">Lock Period (Days)</label>
-                        <input type="number" id="w-days" value="30" class="w-full bg-slate-800 p-2 rounded text-sm font-mono text-white">
-                    </div>
-
-                    <button onclick="addWallet()" class="w-full bg-slate-100 hover:bg-white text-black p-3 rounded-xl font-bold transition text-xs uppercase">Initialize Bank</button>
-                </div>
-
-                <div class="glass p-6 rounded-2xl col-span-2 border-slate-700/50">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Accounts</h3>
-                        <button onclick="syncBalances()" class="text-[10px] text-yellow-500 hover:text-yellow-300 font-bold uppercase">↻ Refresh All</button>
-                    </div>
-                    <div id="wallet-container" class="space-y-4 max-h-[500px] overflow-y-auto pr-2"></div>
-                </div>
-            </div>
-        </main>
+            <button id="connect-btn-top">Connect Wallet</button>
+        </div>
     </div>
 
-    <script>
-        const { Keypair, Connection, clusterApiUrl, LAMPORTS_PER_SOL } = solanaWeb3;
-        const connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
-        let vaultData = [];
-        let masterKey = null;
+    <!-- ── Tile grid ── -->
+    <div class="grid">
 
-        async function deriveKey(password) {
-            const encoder = new TextEncoder();
-            const salt = encoder.encode('mysol-salt-v1');
-            const baseKey = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveKey']);
-            return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, baseKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
-        }
-
-        async function initVault() {
-            const pw = document.getElementById('pass').value;
-            if (!pw) return alert("Enter password.");
-            masterKey = await deriveKey(pw);
-            const raw = localStorage.getItem('mysol_vault');
-            
-            if (raw) {
-                try {
-                    const { ciphertext, iv } = JSON.parse(raw);
-                    const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(atob(iv).split('').map(c => c.charCodeAt(0))) }, masterKey, new Uint8Array(atob(ciphertext).split('').map(c => c.charCodeAt(0))));
-                    vaultData = JSON.parse(new TextDecoder().decode(dec));
-                } catch (e) { return alert("Invalid Password"); }
-            }
-            showUI();
-        }
-
-        async function save() {
-            const iv = crypto.getRandomValues(new Uint8Array(12));
-            const enc = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, masterKey, new TextEncoder().encode(JSON.stringify(vaultData)));
-            localStorage.setItem('mysol_vault', JSON.stringify({
-                ciphertext: btoa(String.fromCharCode(...new Uint8Array(enc))),
-                iv: btoa(String.fromCharCode(...iv))
-            }));
-        }
-
-        function showUI() {
-            document.getElementById('auth-box').classList.add('hidden');
-            document.getElementById('dashboard').classList.remove('hidden');
-            document.getElementById('status-tag').innerText = "Vault Active";
-            document.getElementById('status-tag').className = "px-3 py-1 rounded-full bg-green-900/30 text-green-400 text-[10px] font-bold border border-green-500/50 uppercase";
-            render();
-        }
-
-        async function addWallet() {
-            const name = document.getElementById('w-name').value || "Savings";
-            const limit = document.getElementById('w-limit').value;
-            const days = document.getElementById('w-days').value;
-            const kp = Keypair.generate();
-            vaultData.push({ name, limit, days, address: kp.publicKey.toBase58(), secret: btoa(String.fromCharCode(...kp.secretKey)), created: Date.now() });
-            await save();
-            render();
-        }
-
-        async function render() {
-            const container = document.getElementById('wallet-container');
-            container.innerHTML = vaultData.length ? "" : "<p class='text-slate-600 text-center py-20 italic text-sm'>No piggy banks active.</p>";
-            vaultData.forEach((w, i) => {
-                const expires = new Date(w.created + (w.days * 86400000)).toLocaleDateString();
-                const div = document.createElement('div');
-                div.className = "p-5 rounded-xl bg-slate-900/50 border border-slate-800 flex justify-between items-center";
-                div.innerHTML = `
-                    <div class="flex-1">
-                        <div class="flex items-center gap-3">
-                            <span class="font-bold text-yellow-500">${w.name}</span>
-                            <span class="text-[8px] bg-yellow-500/10 px-2 py-0.5 rounded text-yellow-500 border border-yellow-500/20 uppercase font-black font-mono">Limit: ${w.limit} SOL</span>
+        <!-- Tile 1: Connect -->
+        <div class="tile active" id="tile-1">
+            <div class="tile-head">
+                <div>
+                    <div class="tile-label">Step 1</div>
+                    <div class="tile-title">Connect Wallet</div>
+                </div>
+                <div class="tile-num" id="t1-num">1</div>
+            </div>
+            <div class="tile-desc">
+                Connect the wallet you'll use to sign transactions. Your SOL will live inside a vault account linked to this wallet — not the wallet itself.
+            </div>
+            <div class="tile-body">
+                <div id="t1-wallet-info" style="display:none;">
+                    <div class="stats">
+                        <div class="stat wide">
+                            <div class="stat-label">Connected Wallet</div>
+                            <div class="stat-value" id="t1-address" style="font-size:12px;font-family:monospace;">—</div>
                         </div>
-                        <p class="text-[10px] font-mono text-slate-500 mt-2 truncate max-w-[150px]">${w.address}</p>
-                        <p class="text-[9px] text-slate-600 uppercase mt-2">Ends: ${expires}</p>
+                        <div class="stat">
+                            <div class="stat-label">Wallet Balance</div>
+                            <div class="stat-value good" id="t1-balance">—</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Network</div>
+                            <div class="stat-value" id="t1-network">Devnet</div>
+                        </div>
                     </div>
-                    <div class="text-right space-y-2">
-                        <p id="bal-${i}" class="text-xl font-mono font-bold">... SOL</p>
-                        <div class="flex gap-2 justify-end">
-                            <button onclick="exportKey('${w.secret}')" class="text-[9px] bg-slate-800 px-2 py-1 rounded text-slate-400 hover:text-white uppercase">Export</button>
-                            <button onclick="alert('Program deployment required for enforced withdrawal.')" class="text-[9px] bg-yellow-600 px-2 py-1 rounded text-black font-bold uppercase">Withdraw Today</button>
+                </div>
+                <button class="btn btn-sol" id="connect-btn-tile">Connect Wallet</button>
+                <div class="status-bar" id="s1-status"></div>
+            </div>
+        </div>
+
+        <!-- Tile 2: Burn Rules -->
+        <div class="tile locked" id="tile-2">
+            <div class="tile-head">
+                <div>
+                    <div class="tile-label">Step 2</div>
+                    <div class="tile-title">Burn Rules</div>
+                </div>
+                <div class="tile-num" id="t2-num">2</div>
+            </div>
+            <div class="tile-desc">
+                Set a daily spending limit and enforcement period. Once signed, the blockchain enforces these rules permanently — no exceptions.
+            </div>
+            <div class="tile-body">
+                <div id="vault-exists-alert" class="alert alert-warn" style="display:none;">
+                    <strong>Rules already on-chain.</strong> Skip to Fund or Withdraw.
+                </div>
+                <div id="init-fields">
+                    <div style="display:flex;gap:8px;margin-bottom:10px;">
+                        <div class="field" style="flex:1;">
+                            <label>Daily Limit (SOL)</label>
+                            <input type="number" id="limit" value="1.0" step="0.1" min="0.001">
                         </div>
-                    </div>`;
-                container.appendChild(div);
-                updateBalance(w.address, `bal-${i}`);
+                        <div class="field" style="flex:1;">
+                            <label>Days</label>
+                            <input type="number" id="days" value="90" min="1">
+                        </div>
+                    </div>
+                    <button class="btn btn-ghost-sol" id="init-btn" disabled>Sign &amp; Burn Rules</button>
+                </div>
+                <button class="btn btn-ghost-warn" id="close-vault-btn" style="display:none;">Reset Vault (Devnet)</button>
+                <div class="status-bar" id="s2-status"></div>
+            </div>
+        </div>
+
+        <!-- Tile 3: Vault Status -->
+        <div class="tile locked" id="tile-3">
+            <div class="tile-head">
+                <div>
+                    <div class="tile-label">Vault Status</div>
+                    <div class="tile-title">Rules &amp; Balances</div>
+                </div>
+                <div class="tile-num" id="t3-num">↻</div>
+            </div>
+            <div class="tile-desc">
+                Live view of your vault — balance, daily limit, and how much you've spent today.
+            </div>
+            <div class="tile-body">
+                <div class="pda-row" id="vault-pda-row" style="display:none;">
+                    <span class="pda-label">Vault</span>
+                    <span class="pda-val" id="vault-pda-display">—</span>
+                    <a id="vault-explorer-link" href="#" target="_blank">↗</a>
+                </div>
+                <div class="stats" id="vault-stats" style="display:none;">
+                    <div class="stat">
+                        <div class="stat-label">Wallet Balance</div>
+                        <div class="stat-value" id="wallet-balance-display">—</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Vault Balance</div>
+                        <div class="stat-value good" id="vault-balance">—</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Daily Limit</div>
+                        <div class="stat-value" id="vault-limit-display">—</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Remaining Today</div>
+                        <div class="stat-value good" id="vault-remaining">—</div>
+                    </div>
+                    <div class="stat wide">
+                        <div class="stat-label">Daily Usage</div>
+                        <div class="prog-wrap"><div class="prog-bar" id="vault-prog" style="width:0%"></div></div>
+                        <div style="display:flex;justify-content:space-between;margin-top:4px;">
+                            <span style="font-size:9px;color:#333;" id="vault-spent-label">0 spent</span>
+                            <span style="font-size:9px;color:#333;" id="vault-expiry-label">—</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-ghost" id="refresh-btn" disabled>↻ Refresh</button>
+                <div class="status-bar" id="s3-status"></div>
+            </div>
+        </div>
+
+        <!-- Tile 4: Fund -->
+        <div class="tile locked" id="tile-4">
+            <div class="tile-head">
+                <div>
+                    <div class="tile-label">Step 3</div>
+                    <div class="tile-title">Fund Vault</div>
+                </div>
+                <div class="tile-num" id="t4-num">3</div>
+            </div>
+            <div class="tile-desc">
+                Deposit SOL from your wallet into the vault. The vault is your enforced spending account — load it up and spend from it.
+            </div>
+            <div class="tile-body">
+                <div class="field">
+                    <label>Amount to Deposit (SOL)</label>
+                    <input type="number" id="fund-amount" value="2.0" step="0.1" min="0.001">
+                    <div class="hint" id="fund-hint">Connect wallet to see available balance.</div>
+                </div>
+                <button class="btn btn-ghost-good" id="fund-btn" disabled>Deposit into Vault</button>
+                <div class="status-bar" id="s4-status"></div>
+            </div>
+        </div>
+
+        <!-- Tile 5: Withdraw -->
+        <div class="tile locked" id="tile-5">
+            <div class="tile-head">
+                <div>
+                    <div class="tile-label">Step 4</div>
+                    <div class="tile-title">Withdraw</div>
+                </div>
+                <div class="tile-num" id="t5-num">4</div>
+            </div>
+            <div class="tile-desc">
+                Withdraw SOL to your wallet. The on-chain program enforces your limit on every withdrawal — the blockchain rejects anything over.
+            </div>
+            <div class="tile-body">
+                <div class="field">
+                    <label>Amount to Withdraw (SOL)</label>
+                    <input type="number" id="withdraw-amount" value="0.5" step="0.01" min="0.000001">
+                    <div class="hint" id="withdraw-hint">Fund vault first.</div>
+                </div>
+                <div id="withdraw-warning" class="alert alert-warn" style="display:none;font-size:10px;"></div>
+                <button class="btn btn-ghost-sol" id="withdraw-btn" disabled>Withdraw (Enforced)</button>
+                <div class="status-bar" id="s5-status"></div>
+            </div>
+        </div>
+
+        <!-- Tile 6: Info -->
+        <div class="tile" id="tile-6" style="opacity:1;">
+            <div class="tile-head">
+                <div>
+                    <div class="tile-label">About</div>
+                    <div class="tile-title">How It Works</div>
+                </div>
+            </div>
+            <div class="tile-body" style="justify-content:flex-start;gap:12px;">
+                <div class="info-point">
+                    <span class="info-icon">🔒</span>
+                    <div><strong>Immutable rules</strong><br>Once upgrade authority is burned, nobody can change the program — including you.</div>
+                </div>
+                <div class="info-point">
+                    <span class="info-icon">⛔</span>
+                    <div><strong>On-chain enforcement</strong><br>The blockchain itself rejects over-limit withdrawals. Not this app.</div>
+                </div>
+                <div class="info-point">
+                    <span class="info-icon">🏦</span>
+                    <div><strong>Vault is your spending account</strong><br>Fund it, then withdraw through this app. The limit applies to every outgoing transaction.</div>
+                </div>
+                <div class="info-point">
+                    <span class="info-icon">🔑</span>
+                    <div><strong>No private key</strong><br>The vault PDA has no private key. Only your program can move funds out.</div>
+                </div>
+                <a id="faucet-link" href="https://faucet.solana.com" target="_blank" style="display:none;" class="btn btn-ghost">Get Devnet SOL → faucet.solana.com</a>
+            </div>
+        </div>
+
+    </div><!-- /grid -->
+
+    <div class="footer" id="footer-bar">
+        MySOL Vault — Program: Ed3m1f...w4bt
+    </div>
+
+</div><!-- /app -->
+
+<script>
+    const PROGRAM_ID_STR = "Ed3m1fhxygWysgyLSLryp3haQNcvMri8MkrqGvNDw4bt";
+    const { Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram } = solanaWeb3;
+
+    let connection     = new Connection('https://api.devnet.solana.com', 'confirmed');
+    let walletPubkey   = null;
+    let walletProvider = null;
+    let currentNetwork = 'devnet';
+    let vaultPDA       = null;
+    let vaultData      = null;
+
+    // ── Encoding ──────────────────────────────────────────────────────────────
+    function encodeU64(v) {
+        const b = new Uint8Array(8); let n = BigInt(v);
+        for (let i = 0; i < 8; i++) { b[i] = Number(n & 0xffn); n >>= 8n; } return b;
+    }
+    function encodeI64(v) {
+        const b = new Uint8Array(8); let n = BigInt(v);
+        if (n < 0n) n += (1n << 64n);
+        for (let i = 0; i < 8; i++) { b[i] = Number(n & 0xffn); n >>= 8n; } return b;
+    }
+    function decodeU64(view, o) {
+        let v = 0n; for (let i = 0; i < 8; i++) v |= BigInt(view.getUint8(o+i)) << BigInt(i*8); return v;
+    }
+    function decodeI64(view, o) {
+        let v = 0n; for (let i = 0; i < 8; i++) v |= BigInt(view.getUint8(o+i)) << BigInt(i*8);
+        if (v >= (1n << 63n)) v -= (1n << 64n); return v;
+    }
+    async function disc(name) {
+        const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('global:' + name));
+        return new Uint8Array(h).slice(0, 8);
+    }
+    function solStr(lamports) { return (Number(lamports) / 1e9).toFixed(4) + ' SOL'; }
+    function setStatus(id, msg, cls='') {
+        const el = document.getElementById(id);
+        el.innerText = msg; el.className = 'status-bar' + (cls ? ' '+cls : '');
+    }
+    function findProvider() {
+        if (window.solana?.isPhantom)    return window.solana;
+        if (window.solflare?.isSolflare) return window.solflare;
+        if (window.solana)               return window.solana;
+        return null;
+    }
+    function unlock(id) {
+        const el = document.getElementById(id);
+        el.classList.remove('locked'); el.classList.add('active');
+    }
+    function markDone(id) {
+        const el = document.getElementById(id);
+        el.classList.remove('active'); el.classList.add('done');
+    }
+
+    async function deriveVaultPDA() {
+        const [pda] = await PublicKey.findProgramAddress(
+            [new TextEncoder().encode('vault'), walletPubkey.toBytes()],
+            new PublicKey(PROGRAM_ID_STR)
+        );
+        return pda;
+    }
+
+    async function sendAndConfirm(statusId, instruction) {
+        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+        const tx = new Transaction({ feePayer: walletPubkey, blockhash, lastValidBlockHeight }).add(instruction);
+        setStatus(statusId, 'Waiting for approval...');
+        const signed = await walletProvider.signTransaction(tx);
+        setStatus(statusId, 'Sending...');
+        const sig = await connection.sendRawTransaction(signed.serialize());
+        setStatus(statusId, 'Confirming...');
+        await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed');
+        return sig;
+    }
+
+    // ── Read vault ────────────────────────────────────────────────────────────
+    async function readVault() {
+        if (!vaultPDA) return null;
+        const info = await connection.getAccountInfo(vaultPDA);
+        if (!info) return null;
+        const raw = new Uint8Array(info.data);
+        if (raw.length < 72) return null;
+        const view = new DataView(raw.buffer);
+        return {
+            owner:           new PublicKey(raw.slice(8,40)).toString(),
+            dailyLimit:      decodeU64(view, 40),
+            lastWithdraw:    decodeI64(view, 48),
+            withdrawnToday:  decodeU64(view, 56),
+            expiryDate:      decodeI64(view, 64),
+            balanceLamports: BigInt(info.lamports),
+        };
+    }
+
+    async function refreshVaultUI() {
+        const d = await readVault();
+        vaultData = d;
+        if (!d) return;
+
+        // Wallet balance
+        try {
+            const walBal = await connection.getBalance(walletPubkey);
+            const walSol = walBal / 1e9;
+            const wEl = document.getElementById('wallet-balance-display');
+            wEl.innerText = walSol.toFixed(4) + ' SOL';
+            wEl.className = 'stat-value' + (walSol < 0.01 ? ' danger' : walSol < 0.1 ? ' warn' : '');
+            // Update tile 1 balance
+            document.getElementById('t1-balance').innerText = walSol.toFixed(4) + ' SOL';
+            // Fund hint
+            document.getElementById('fund-hint').innerText =
+                'Available: ' + walSol.toFixed(4) + ' SOL (reserve ~0.001 for fees)';
+            document.getElementById('fund-hint').className = 'hint' + (walSol < 0.01 ? ' danger' : '');
+        } catch(e) {}
+
+        const nowSec   = BigInt(Math.floor(Date.now() / 1000));
+        const isActive = nowSec < d.expiryDate;
+        const spentNow = (nowSec - d.lastWithdraw > 86400n) ? 0n : d.withdrawnToday;
+        const remaining = d.dailyLimit > spentNow ? d.dailyLimit - spentNow : 0n;
+        const pct = d.dailyLimit > 0n ? Number(spentNow * 100n / d.dailyLimit) : 0;
+
+        // Tile 3 stats
+        document.getElementById('vault-stats').style.display = 'grid';
+        document.getElementById('vault-pda-row').style.display = 'flex';
+        document.getElementById('vault-pda-display').innerText =
+            vaultPDA.toString().slice(0,6) + '...' + vaultPDA.toString().slice(-6);
+        const cluster = currentNetwork === 'devnet' ? '?cluster=devnet' : '';
+        document.getElementById('vault-explorer-link').href =
+            'https://explorer.solana.com/address/' + vaultPDA.toString() + cluster;
+
+        document.getElementById('vault-balance').innerText = solStr(d.balanceLamports);
+        document.getElementById('vault-limit-display').innerText = solStr(d.dailyLimit);
+
+        const remEl = document.getElementById('vault-remaining');
+        remEl.innerText = solStr(remaining);
+        remEl.className = 'stat-value' + (pct >= 100 ? ' danger' : pct >= 75 ? ' warn' : ' good');
+
+        const bar = document.getElementById('vault-prog');
+        bar.style.width = Math.min(pct, 100) + '%';
+        bar.className = 'prog-bar' + (pct >= 100 ? ' danger' : pct >= 75 ? ' warn' : '');
+
+        document.getElementById('vault-spent-label').innerText = solStr(spentNow) + ' spent';
+        const expStr = isActive
+            ? 'Expires ' + new Date(Number(d.expiryDate)*1000).toLocaleDateString()
+            : '✓ Expired';
+        document.getElementById('vault-expiry-label').innerText = expStr;
+
+        updateWithdrawHint(remaining, d.dailyLimit, isActive, d.expiryDate);
+    }
+
+    function updateWithdrawHint(remaining, dailyLimit, isActive, expiryDate) {
+        const hint    = document.getElementById('withdraw-hint');
+        const warning = document.getElementById('withdraw-warning');
+        const amount  = Number(document.getElementById('withdraw-amount').value) || 0;
+        const amtLam  = BigInt(Math.round(amount * 1e9));
+
+        if (!isActive) {
+            hint.innerText = '✅ Enforcement expired — withdraw any amount.';
+            hint.className = 'hint good';
+            warning.style.display = 'none';
+            return;
+        }
+
+        const remSol   = Number(remaining) / 1e9;
+        const limitSol = Number(dailyLimit) / 1e9;
+        hint.innerText = `Limit: ${limitSol.toFixed(4)} SOL/day — Available: ${remSol.toFixed(4)} SOL`;
+        hint.className = 'hint';
+
+        if (amtLam > remaining) {
+            warning.style.display = 'block';
+            warning.innerHTML = `⛔ <strong>Will be rejected.</strong> You're trying ${amount.toFixed(4)} SOL but only ${remSol.toFixed(4)} SOL available today. Split across days or wait for the 24h window to reset.`;
+        } else {
+            warning.style.display = 'none';
+        }
+    }
+
+    // ── Network ───────────────────────────────────────────────────────────────
+    document.getElementById('network').addEventListener('change', async () => {
+        currentNetwork = document.getElementById('network').value;
+        const isDevnet = currentNetwork === 'devnet';
+        connection = new Connection(
+            isDevnet ? 'https://api.devnet.solana.com' : 'https://api.mainnet-beta.solana.com',
+            'confirmed'
+        );
+        document.getElementById('net-dot').className = 'net-dot' + (isDevnet ? '' : ' live');
+        document.getElementById('t1-network').innerText = isDevnet ? 'Devnet' : 'Mainnet';
+        document.getElementById('faucet-link').style.display = isDevnet ? 'block' : 'none';
+        document.getElementById('close-vault-btn').style.display = isDevnet ? 'block' : 'none';
+        if (walletPubkey) await checkAndSetupVault();
+    });
+
+    // ── Connect ───────────────────────────────────────────────────────────────
+    const detectInterval = setInterval(() => {
+        const p = findProvider();
+        if (!p) return;
+        const label = p.isPhantom ? 'Connect Phantom' : 'Connect Wallet';
+        document.getElementById('connect-btn-top').innerText  = label;
+        document.getElementById('connect-btn-tile').innerText = label;
+    }, 500);
+
+    async function doConnect() {
+        try {
+            const provider = findProvider();
+            if (!provider) { setStatus('s1-status', 'No wallet extension found.', 'err'); return; }
+            setStatus('s1-status', 'Connecting...');
+            await provider.connect();
+            walletPubkey   = new PublicKey(provider.publicKey.toString());
+            walletProvider = provider;
+            clearInterval(detectInterval);
+
+            // Fetch wallet balance
+            let walBal = 0;
+            try { walBal = await connection.getBalance(walletPubkey); } catch(e) {}
+            const walSol = (walBal / 1e9).toFixed(4);
+            const shortKey = walletPubkey.toString().slice(0,4) + '...' + walletPubkey.toString().slice(-4);
+
+            // Update top bar button
+            const topBtn = document.getElementById('connect-btn-top');
+            topBtn.innerText = shortKey + ' (' + walSol + ')';
+            topBtn.classList.add('connected');
+            topBtn.disabled = true;
+
+            // Update tile 1
+            document.getElementById('connect-btn-tile').innerText = '✓ Connected';
+            document.getElementById('connect-btn-tile').className = 'btn btn-good';
+            document.getElementById('connect-btn-tile').disabled = true;
+            document.getElementById('t1-address').innerText = walletPubkey.toString().slice(0,8) + '...' + walletPubkey.toString().slice(-8);
+            document.getElementById('t1-balance').innerText = walSol + ' SOL';
+            document.getElementById('t1-wallet-info').style.display = 'block';
+            document.getElementById('t1-network').innerText = currentNetwork === 'devnet' ? 'Devnet' : 'Mainnet';
+
+            if (currentNetwork === 'devnet') document.getElementById('faucet-link').style.display = 'block';
+            markDone('tile-1');
+            setStatus('s1-status', '');
+            await checkAndSetupVault();
+        } catch(e) {
+            console.error(e);
+            setStatus('s1-status', 'Rejected.', 'err');
+        }
+    }
+
+    document.getElementById('connect-btn-top').addEventListener('click', doConnect);
+    document.getElementById('connect-btn-tile').addEventListener('click', doConnect);
+
+    // ── Check vault ───────────────────────────────────────────────────────────
+    async function checkAndSetupVault() {
+        vaultPDA = await deriveVaultPDA();
+        const info = await connection.getAccountInfo(vaultPDA);
+        const exists = info !== null;
+
+        unlock('tile-2');
+        document.getElementById('init-btn').disabled = false;
+
+        if (exists) {
+            document.getElementById('vault-exists-alert').style.display = 'block';
+            document.getElementById('init-fields').style.display = 'none';
+            if (currentNetwork === 'devnet') document.getElementById('close-vault-btn').style.display = 'block';
+            markDone('tile-2');
+            unlock('tile-3');
+            unlock('tile-4');
+            unlock('tile-5');
+            document.getElementById('fund-btn').disabled = false;
+            document.getElementById('withdraw-btn').disabled = false;
+            document.getElementById('refresh-btn').disabled = false;
+            await refreshVaultUI();
+        } else {
+            document.getElementById('vault-exists-alert').style.display = 'none';
+            document.getElementById('init-fields').style.display = 'block';
+        }
+    }
+
+    // ── Init vault ────────────────────────────────────────────────────────────
+    document.getElementById('init-btn').addEventListener('click', async () => {
+        const rawLimit = Number(document.getElementById('limit').value);
+        const daysVal  = Number(document.getElementById('days').value);
+        if (!rawLimit || rawLimit <= 0 || !daysVal || daysVal <= 0) {
+            setStatus('s2-status', 'Enter valid limit and days.', 'err'); return;
+        }
+        try {
+            setStatus('s2-status', 'Building transaction...');
+            const limitLam = Math.round(rawLimit * 1e9);
+            const d = await disc('initialize_vault');
+            const data = new Uint8Array(24);
+            data.set(d, 0); data.set(encodeU64(limitLam), 8); data.set(encodeI64(daysVal), 16);
+            const ix = new TransactionInstruction({
+                programId: new PublicKey(PROGRAM_ID_STR),
+                keys: [
+                    { pubkey: vaultPDA,               isSigner: false, isWritable: true  },
+                    { pubkey: walletPubkey,            isSigner: true,  isWritable: true  },
+                    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+                ],
+                data,
             });
+            const sig = await sendAndConfirm('s2-status', ix);
+            setStatus('s2-status', '✓ Rules burned!', 'ok');
+            markDone('tile-2');
+            unlock('tile-3'); unlock('tile-4'); unlock('tile-5');
+            document.getElementById('fund-btn').disabled = false;
+            document.getElementById('withdraw-btn').disabled = false;
+            document.getElementById('refresh-btn').disabled = false;
+            document.getElementById('init-fields').style.display = 'none';
+            document.getElementById('vault-exists-alert').style.display = 'block';
+            document.getElementById('vault-exists-alert').className = 'alert alert-success';
+            document.getElementById('vault-exists-alert').innerHTML =
+                '<strong>✓ Locked.</strong> ' + rawLimit + ' SOL/day for ' + daysVal + ' days.';
+            await refreshVaultUI();
+        } catch(err) {
+            console.error(err);
+            setStatus('s2-status', 'Failed: ' + (err?.message || err), 'err');
         }
+    });
 
-        async function updateBalance(addr, id) {
-            try {
-                const b = await connection.getBalance(new solanaWeb3.PublicKey(addr));
-                document.getElementById(id).innerText = (b / LAMPORTS_PER_SOL).toFixed(4) + " SOL";
-            } catch (e) { document.getElementById(id).innerText = "Err"; }
+    // ── Fund vault ────────────────────────────────────────────────────────────
+    document.getElementById('fund-btn').addEventListener('click', async () => {
+        const amount = Number(document.getElementById('fund-amount').value);
+        if (!amount || amount <= 0) { setStatus('s4-status', 'Enter a valid amount.', 'err'); return; }
+        try {
+            setStatus('s4-status', 'Building deposit...');
+            const lamports = Math.round(amount * 1e9);
+            const transferData = new Uint8Array(12);
+            transferData[0] = 2;
+            let lam = BigInt(lamports);
+            for (let i = 0; i < 8; i++) { transferData[4+i] = Number(lam & 0xffn); lam >>= 8n; }
+            const ix = new TransactionInstruction({
+                programId: SystemProgram.programId,
+                keys: [
+                    { pubkey: walletPubkey, isSigner: true,  isWritable: true },
+                    { pubkey: vaultPDA,     isSigner: false, isWritable: true },
+                ],
+                data: transferData,
+            });
+            const sig = await sendAndConfirm('s4-status', ix);
+            setStatus('s4-status', '✓ Deposited ' + amount + ' SOL', 'ok');
+            await refreshVaultUI();
+        } catch(err) {
+            console.error(err);
+            setStatus('s4-status', 'Failed: ' + (err?.message || err), 'err');
         }
+    });
 
-        function exportKey(secret) {
-            const bytes = JSON.stringify(Array.from(new Uint8Array(atob(secret).split('').map(c => c.charCodeAt(0)))));
-            prompt("SAVE PRIVATELY (Private Key Array):", bytes);
-        }
+    // ── Refresh ───────────────────────────────────────────────────────────────
+    document.getElementById('refresh-btn').addEventListener('click', async () => {
+        setStatus('s3-status', 'Refreshing...');
+        await refreshVaultUI();
+        setStatus('s3-status', '✓ Updated', 'ok');
+    });
 
-        function syncBalances() {
-            vaultData.forEach((w, i) => updateBalance(w.address, `bal-${i}`));
+    // ── Withdraw ──────────────────────────────────────────────────────────────
+    document.getElementById('withdraw-btn').addEventListener('click', async () => {
+        const amount = Number(document.getElementById('withdraw-amount').value);
+        if (!amount || amount <= 0) { setStatus('s5-status', 'Enter a valid amount.', 'err'); return; }
+        const lamports = Math.round(amount * 1e9);
+        try {
+            setStatus('s5-status', 'Building withdrawal...');
+            const d = await disc('withdraw');
+            const data = new Uint8Array(16);
+            data.set(d, 0); data.set(encodeU64(lamports), 8);
+            const ix = new TransactionInstruction({
+                programId: new PublicKey(PROGRAM_ID_STR),
+                keys: [
+                    { pubkey: vaultPDA,               isSigner: false, isWritable: true },
+                    { pubkey: walletPubkey,            isSigner: true,  isWritable: true },
+                    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+                ],
+                data,
+            });
+            const sig = await sendAndConfirm('s5-status', ix);
+            setStatus('s5-status', '✓ Withdrawn ' + amount + ' SOL', 'ok');
+            await refreshVaultUI();
+        } catch(err) {
+            console.error(err);
+            const msg = err?.message || String(err);
+            if (msg.includes('0x1770') || msg.includes('6000') || msg.includes('LimitExceeded')) {
+                setStatus('s5-status', '⛔ Rejected — daily limit exceeded.', 'err');
+            } else {
+                setStatus('s5-status', 'Failed: ' + msg, 'err');
+            }
+            await refreshVaultUI();
         }
-    </script>
+    });
+
+    document.getElementById('withdraw-amount').addEventListener('input', () => {
+        if (!vaultData) return;
+        const nowSec = BigInt(Math.floor(Date.now() / 1000));
+        const isActive = nowSec < vaultData.expiryDate;
+        const spent = (nowSec - vaultData.lastWithdraw > 86400n) ? 0n : vaultData.withdrawnToday;
+        const remaining = vaultData.dailyLimit > spent ? vaultData.dailyLimit - spent : 0n;
+        updateWithdrawHint(remaining, vaultData.dailyLimit, isActive, vaultData.expiryDate);
+    });
+
+    // ── Close vault devnet ────────────────────────────────────────────────────
+    document.getElementById('close-vault-btn').addEventListener('click', async () => {
+        if (currentNetwork !== 'devnet') return;
+        if (!confirm('Reset vault? DEVNET ONLY.')) return;
+        try {
+            setStatus('s2-status', 'Resetting vault...');
+            const d = await disc('close_vault');
+            const ix = new TransactionInstruction({
+                programId: new PublicKey(PROGRAM_ID_STR),
+                keys: [
+                    { pubkey: vaultPDA,     isSigner: false, isWritable: true },
+                    { pubkey: walletPubkey, isSigner: true,  isWritable: true },
+                ],
+                data: d,
+            });
+            await sendAndConfirm('s2-status', ix);
+            setStatus('s2-status', '✓ Vault reset.', 'ok');
+            document.getElementById('vault-exists-alert').style.display = 'none';
+            document.getElementById('init-fields').style.display = 'block';
+            document.getElementById('close-vault-btn').style.display = 'none';
+            document.getElementById('vault-stats').style.display = 'none';
+            document.getElementById('vault-pda-row').style.display = 'none';
+            document.getElementById('tile-2').classList.remove('done');
+            document.getElementById('tile-2').classList.add('active');
+            document.getElementById('tile-3').classList.add('locked');
+            document.getElementById('tile-4').classList.add('locked');
+            document.getElementById('tile-5').classList.add('locked');
+            vaultData = null;
+        } catch(err) {
+            console.error(err);
+            setStatus('s2-status', 'Failed: ' + (err?.message || err), 'err');
+        }
+    });
+</script>
 </body>
 </html>
