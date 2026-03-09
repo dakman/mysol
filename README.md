@@ -58,6 +58,7 @@ Unlike systems that reset at a fixed time, MySOL Vault uses a **Relative Rolling
 ## 🎯 Use Cases
 
 * **The Profit Protector:** Lock away daily trading profits in USDC so you don't trade them back into the market during a "tilt."
+* **The Big-Win Lockbox:** After a large gambling/trading win, move funds into the vault so you can't immediately redeposit and chase bigger wins or recover losses impulsively.
 * **The Living Allowance:** Deposit your monthly budget in USDC and set a daily limit (e.g., $50/day) to ensure your rent money lasts.
 * **The Security Layer:** Keep your primary stack in the Vault. If your mobile wallet is compromised, a thief can only "trickle" out small amounts daily, giving you time to respond.
 
