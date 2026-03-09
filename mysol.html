@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v3.6</title>
+    <title>MySOL | Spending Vault v3.7</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -148,7 +148,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v3.6</h1>
+            <h1>MySOL Vault v3.7</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -330,7 +330,7 @@
 
     </div>
 
-    <div class="footer">MySOL Vault v3.6 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU</div>
+    <div class="footer">MySOL Vault v3.7 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU</div>
 </div>
 
 <div id="how-modal" class="modal-overlay">
@@ -1132,11 +1132,33 @@ document.getElementById('close-vault-btn').addEventListener('click', async () =>
         const vaultState = await readVault();
         const nowSec = BigInt(Math.floor(Date.now() / 1000));
         const dayLimitSec = 86400n;
-        const isActive = vaultState ? nowSec < vaultState.expiryDate : false;
+        let isActive = vaultState ? nowSec < vaultState.expiryDate : false;
         const solSpent = (vaultState && (nowSec - vaultState.lastWithdrawSol <= dayLimitSec)) ? vaultState.withdrawnSol : 0n;
         const usdcSpent = (vaultState && (nowSec - vaultState.lastWithdrawUsdc <= dayLimitSec)) ? vaultState.withdrawnUsdc : 0n;
-        const solRem = vaultState ? (vaultState.dailyLimitSol > solSpent ? vaultState.dailyLimitSol - solSpent : 0n) : 0n;
-        const usdcRem = vaultState ? (vaultState.dailyLimitUsdc > usdcSpent ? vaultState.dailyLimitUsdc - usdcSpent : 0n) : 0n;
+        let solRem = vaultState ? (vaultState.dailyLimitSol > solSpent ? vaultState.dailyLimitSol - solSpent : 0n) : 0n;
+        let usdcRem = vaultState ? (vaultState.dailyLimitUsdc > usdcSpent ? vaultState.dailyLimitUsdc - usdcSpent : 0n) : 0n;
+
+        // Devnet-only bypass: end enforcement first so full drain/reset can proceed.
+        if (isActive) {
+            try {
+                setStatus('s2-status', 'Ending enforcement (dev mode)...');
+                const dEnd = await disc('end_enforcement_devnet');
+                const ixEnd = new TransactionInstruction({
+                    programId: new PublicKey(PROGRAM_ID_STR),
+                    keys: [
+                        { pubkey: vaultPDA,     isSigner: false, isWritable: true },
+                        { pubkey: walletPubkey, isSigner: true,  isWritable: false },
+                    ],
+                    data: dEnd,
+                });
+                await sendAndConfirm('s2-status', ixEnd);
+                isActive = false;
+                solRem = 0n;
+                usdcRem = 0n;
+            } catch (e) {
+                console.warn('end_enforcement_devnet unavailable or failed, continuing with normal limits', e);
+            }
+        }
 
         // 1) Auto-withdraw USDC from vault ATA to user ATA.
         const vaultTokenInfo = await detectTokenProgram(vaultPDA, getUsdcMint());

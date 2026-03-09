@@ -193,6 +193,18 @@ pub mod mysol_program {
         msg!("Devnet reset complete.");
         Ok(())
     }
+
+    #[cfg(feature = "devnet-reset")]
+    pub fn end_enforcement_devnet(ctx: Context<EndEnforcementDevnet>) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        vault.expiry_date = 0;
+        vault.last_withdraw_sol = 0;
+        vault.last_withdraw_usdc = 0;
+        vault.withdrawn_sol = 0;
+        vault.withdrawn_usdc = 0;
+        msg!("Devnet-only enforcement ended.");
+        Ok(())
+    }
 }
 
 // ── Contexts ──────────────────────────────────────────────────────────────────
@@ -297,6 +309,19 @@ pub struct CloseVault<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
     pub token_program: Interface<'info, TokenInterface>,
+}
+
+#[cfg(feature = "devnet-reset")]
+#[derive(Accounts)]
+pub struct EndEnforcementDevnet<'info> {
+    #[account(
+        mut,
+        seeds = [b"vault", user.key().as_ref(), b"v2"],
+        bump,
+        constraint = vault.owner == user.key() @ VaultError::Unauthorized
+    )]
+    pub vault: Account<'info, VaultState>,
+    pub user: Signer<'info>,
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
