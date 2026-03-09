@@ -12,6 +12,7 @@
 ## 📸 UI Screenshot
 
 ![MySOL Vault v5.0 UI](./assets/mysol-v5-ui.png)
+![MySOL Vault v5.0 Burn Rules and Activity](./assets/mysol-v5-ui-2.png)
 
 ---
 
