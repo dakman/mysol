@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v4.4</title>
+    <title>MySOL | Spending Vault v4.5</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -158,7 +158,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v4.4</h1>
+            <h1>MySOL Vault v4.5</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -341,7 +341,7 @@
     </div>
 
     <div class="footer">
-        MySOL Vault v4.4 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
+        MySOL Vault v4.5 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -728,12 +728,12 @@ async function fetchHistory() {
                     if (parsed?.type === 'transfer' && parsed?.info?.lamports != null) {
                         const info = parsed.info;
                         if (info.destination === vaultPDA.toBase58()) {
-                            actionLabel = 'Deposit SOL';
+                            actionLabel = 'Deposit to Vault (SOL)';
                             amountLabel = `Deposit ${solFmt(BigInt(info.lamports))}`;
                             break;
                         }
                         if (info.source === vaultPDA.toBase58()) {
-                            actionLabel = 'Withdraw SOL';
+                            actionLabel = 'Withdraw from Vault (SOL)';
                             amountLabel = `Withdraw ${solFmt(BigInt(info.lamports))}`;
                             break;
                         }
@@ -749,12 +749,12 @@ async function fetchHistory() {
                         const dst = info.destination;
                         const amt = BigInt(info.amount);
                         if (dst === vaultAtaStd || dst === vaultAta2022) {
-                            actionLabel = 'Deposit USDC';
+                            actionLabel = 'Deposit to Vault (USDC)';
                             amountLabel = `Deposit ${usdcFmt(amt)}`;
                             break;
                         }
                         if (src === vaultAtaStd || src === vaultAta2022) {
-                            actionLabel = 'Withdraw USDC';
+                            actionLabel = 'Withdraw from Vault (USDC)';
                             amountLabel = `Withdraw ${usdcFmt(amt)}`;
                             break;
                         }
@@ -773,12 +773,12 @@ async function fetchHistory() {
                                 break;
                             }
                             if (dHex === dWithdrawSolHex) {
-                                actionLabel = 'Withdraw SOL';
+                                actionLabel = 'Withdraw from Vault (SOL)';
                                 amountLabel = `Withdraw ${solFmt(amt)}`;
                                 break;
                             }
                             if (dHex === dWithdrawUsdcHex) {
-                                actionLabel = 'Withdraw USDC';
+                                actionLabel = 'Withdraw from Vault (USDC)';
                                 amountLabel = `Withdraw ${usdcFmt(amt)}`;
                                 break;
                             }
