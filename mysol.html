@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v4.6</title>
+    <title>MySOL | Spending Vault v4.7</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -158,7 +158,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v4.6</h1>
+            <h1>MySOL Vault v4.7</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -253,7 +253,7 @@
         <div class="tile locked" id="tile-3">
             <div class="tile-head">
                 <div><div class="tile-label">Live Status</div><div class="tile-title">Vault Balances</div></div>
-                <div class="tile-num">↻</div>
+                <div class="tile-num">💰</div>
             </div>
             <div class="tile-body">
                 <div class="pda-row" id="pda-row" style="display:none;">
@@ -280,7 +280,7 @@
                         <div class="stat-value usdc" id="s-vusdc">—</div>
                     </div>
                 </div>
-                <button class="btn btn-ghost" id="refresh-btn" disabled>↻ Refresh</button>
+                <button class="btn btn-ghost" id="refresh-btn" disabled>💰 Sync Vault</button>
                 <div class="status-bar" id="s3-status"></div>
             </div>
         </div>
@@ -341,7 +341,7 @@
     </div>
 
     <div class="footer">
-        MySOL Vault v4.6 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
+        MySOL Vault v4.7 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -464,7 +464,7 @@ function setStatus(id, msg, cls='') {
     el.className = 'status-bar' + (cls ? ' '+cls : '');
 
     // Fade out transient success notices for deposit/withdraw actions.
-    if ((id === 's4-status' || id === 's5-status') && cls === 'ok' && msg) {
+    if ((id === 's3-status' || id === 's4-status' || id === 's5-status') && cls === 'ok' && msg) {
         const timer = setTimeout(() => {
             el.style.transition = 'opacity 0.8s ease';
             el.style.opacity = '0';
