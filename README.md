@@ -4,8 +4,8 @@
 
 * **Live dApp:** [Launch MySOL Vault (GitHub Pages)](https://dakman.github.io/mysol/mysol.html) 
     * *Note: The dApp is set to **Devnet** mode by default for safe testing.*
-* **On-Chain Program:** [View on Solscan (Devnet)](https://solscan.io/account/Ed3m1fhxygWysgyLSLryp3haQNcvMri8MkrqGvNDw4bt?cluster=devnet)
-* **Smart Contract Logic:** The core enforcement rules are defined in [`lib.rs`](./lib.rs).
+* **On-Chain Program:** [View on Solscan (Devnet)](https://solscan.io/account/2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV?cluster=devnet)
+* **Smart Contract Logic:** The core enforcement rules are defined in [`lib.rs`](./mysol_program/programs/mysol_program/src/lib.rs).
 
 ---
 
@@ -26,7 +26,20 @@ MySOL Vault handles both native Solana and SPL Tokens (specifically USDC).
 * **Native SOL:** Handled via direct lamport reassignment from the Vault PDA to the user.
 * **USDC (SPL Token):** The vault creates an Associated Token Account (ATA) owned by the Vault PDA. Withdrawals are executed via `transfer_checked` CPI (Cross-Program Invocation).
 
+---
 
+## 🔎 How It Works
+
+### 1. Program Derived Vault (PDA)
+Each wallet gets a deterministic vault address derived from:
+* seed `"vault"`
+* the user wallet pubkey
+* seed `"v2"`
+
+This means the same wallet always maps to the same vault for this program.
+
+### 2. No Private Key for the Vault
+The vault is a PDA, not a normal wallet account. There is no seed phrase or private key to import/export for it. Funds can only move through valid program instructions signed by the owner wallet.
 
 ### 1. The Rolling 24-Hour Window
 Unlike systems that reset at a fixed time, MySOL Vault uses a **Relative Rolling Window**:
@@ -36,9 +49,9 @@ Unlike systems that reset at a fixed time, MySOL Vault uses a **Relative Rolling
 
 ### 2. Logic Gatekeepers
 * **`initialize_vault`**: Writes the rules. Once set, the `expiry_date` is a hard-coded deadline.
-* **`withdraw`**: The gatekeeper. It checks your balance, your limit, and the clock before executing the transfer.
-
-
+* **`withdraw_sol` / `withdraw_usdc`**: Enforce daily limits on-chain. Over-limit transactions fail at runtime even from custom frontends.
+* **`close_vault`**: Closes only when conditions are met (post-enforcement and empty vault accounts).
+* **`reset_vault_devnet` / `end_enforcement_devnet`**: Devnet testing helpers (feature-gated).
 
 ---
 
@@ -68,18 +81,27 @@ Unlike systems that reset at a fixed time, MySOL Vault uses a **Relative Rolling
 
 | Field | Value |
 | :--- | :--- |
-| **Program ID** | `Ed3m1fhxygWysgyLSLryp3haQNcvMri8MkrqGvNDw4bt` |
-| **Framework** | Anchor 0.30.1 |
-| **Account Seeds** | `[b"vault", user_pubkey]` |
-| **Account Space** | 8 + 32 + 8 + 8 + 8 + 8 (72 bytes) |
+| **Program ID** | `2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV` |
+| **Framework** | Anchor 0.32.1 |
+| **Account Seeds** | `[b"vault", user_pubkey, b"v2"]` |
+| **Vault Account Space** | 128 bytes |
 
 ---
 
 ## ⚠️ Security Architecture
 
 * **Non-Custodial:** Funds are held by the program code on-chain, not by a third-party developer.
-* **Mainnet Guard:** The `close_vault` function currently allows for early closing (Devnet mode). 
-* **Crucial:** Before Mainnet deployment, the `EnforcementActive` check in [`lib.rs`](./lib.rs) must be enabled to prevent users from "deleting" their rules to bypass limits.
+* **On-Chain Enforcement:** Limits are checked by program logic, not by UI state.
+* **Wallet-Scoped Authority:** Vault actions require the original wallet authority checks.
+* **Devnet Helpers:** Reset/end-enforcement helpers are for testing workflows.
+
+---
+
+## ⚠️ Disclaimer
+
+Use MySOL Vault at your own risk. Developer(s) not liable for lost funds.  
+Withdraw and depositing to the vault requires using this page and the original connected wallet.  
+One vault per wallet.
 
 ---
 
