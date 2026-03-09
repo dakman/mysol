@@ -20,11 +20,11 @@
 
 ## Motivations: Why Use a Spending Vault?
 
-The core motivation is **Self-Sovereign Discipline**. In a 24/7 liquid market, the greatest risk to a user's capital is often their own impulsive behavior.
+The core motivation is **self-sovereign discipline for high-risk behavior**. This project is aimed at degens and gamblers who want hard on-chain friction between a win and the impulse to blow it back.
 
-* **Eliminating "Hot Wallet" Risk:** Traditional wallets allow you to drain 100% of your funds in seconds. If your phone is snatched or you experience a moment of poor judgment, your capital is gone.
-* **Willpower as a Service:** By moving enforcement to the blockchain, you outsource your discipline to an immutable auditor. The network simply won't let you overspend.
-* **Anti-Extortion:** In a "wrench attack," an attacker can only force you to withdraw up to your daily limit. The bulk of your capital remains locked behind a time-based wall they cannot break.
+* **Anti-Chasing Guardrail:** After a big win, funds in a normal wallet can be redeposited instantly. MySOL adds daily withdrawal constraints so you cannot immediately loop winnings back into higher-risk bets.
+* **Willpower as a Service:** By moving spending limits to the blockchain, you outsource discipline to deterministic program rules instead of emotion in the moment.
+* **Damage Limiter:** It does not prevent losses, but it can reduce the speed and size of self-inflicted losses by throttling how much can leave the vault per day.
 
 ---
 
@@ -69,7 +69,7 @@ Unlike systems that reset at a fixed time, MySOL Vault uses a **Relative Rolling
 * **The Profit Protector:** Lock away daily trading profits in USDC so you don't trade them back into the market during a "tilt."
 * **The Big-Win Lockbox:** After a large gambling/trading win, move funds into the vault so you can't immediately redeposit and chase bigger wins or recover losses impulsively.
 * **The Living Allowance:** Deposit your monthly budget in USDC and set a daily limit (e.g., $50/day) to ensure your rent money lasts.
-* **The Security Layer:** Keep your primary stack in the Vault. If your mobile wallet is compromised, a thief can only "trickle" out small amounts daily, giving you time to respond.
+* **The Damage-Control Layer:** Keep a larger stack in the vault and expose only daily-sized amounts to impulsive decisions. This is a behavioral guardrail, not a guarantee against all wallet-security risks.
 
 ---
 
