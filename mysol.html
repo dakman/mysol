@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v5.8</title>
+    <title>MySOL | Spending Vault v5.9</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -161,7 +161,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v5.8</h1>
+            <h1>MySOL Vault v5.9</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -350,7 +350,7 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v5.8 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
+        MySOL Vault v5.9 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -489,6 +489,20 @@ function solFmt(lamports)     { return (Number(lamports) / 1e9).toFixed(4) + ' S
 function usdcFmt(microUsdc)   { return (Number(microUsdc) / 1e6).toFixed(2) + ' USDC'; }
 function solShort(lamports)   { return (Number(lamports) / 1e9).toFixed(9).replace(/\.?0+$/, '') + ' SOL'; }
 function usdcShort(microUsdc) { return (Number(microUsdc) / 1e6).toFixed(6).replace(/\.?0+$/, '') + ' USDC'; }
+function fmtTimeLeft(secondsBig) {
+    const s = Number(secondsBig > 0n ? secondsBig : 0n);
+    if (s < 60) return `${s}s left`;
+    if (s < 3600) {
+        const m = Math.ceil(s / 60);
+        return `${m} min left`;
+    }
+    if (s < 86400) {
+        const h = Math.ceil(s / 3600);
+        return `${h}h left`;
+    }
+    const d = Math.ceil(s / 86400);
+    return `${d} days left`;
+}
 function setStatus(id, msg, cls='') {
     const el = document.getElementById(id);
     if (statusFadeTimers.has(id)) {
@@ -988,8 +1002,8 @@ async function refreshVaultUI() {
 
     const expEl = document.getElementById('pda-enforcement');
     if (isActive) {
-        const days = Math.ceil(Number(d.expiryDate - nowSec) / 86400);
-        expEl.innerText = '🔒 Active — ' + days + ' days left';
+        const secondsLeft = d.expiryDate - nowSec;
+        expEl.innerText = '🔒 Active — ' + fmtTimeLeft(secondsLeft);
         expEl.className = 'pda-enf warn';
     } else {
         expEl.innerText = '✓ Expired — withdraw freely';
