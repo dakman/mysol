@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v5.7</title>
+    <title>MySOL | Spending Vault v5.8</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -142,6 +142,7 @@
         .footer { text-align: center; padding: 10px; font-size: 10px; color: #666; border-top: 1px solid var(--border); background: #000; }
         .disclaimer { text-align: center; padding: 10px 12px; font-size: 10px; color: #8a8a8a; background: #000; border-top: 1px solid #111; }
         .disclaimer .disc-label { color: #9a9a9a; font-weight: 600; }
+        .disclaimer a { color: #aaa; text-decoration: underline; cursor: pointer; }
 
         /* ── Mobile ── */
         @media (max-width: 768px) {
@@ -160,7 +161,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v5.7</h1>
+            <h1>MySOL Vault v5.8</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -347,9 +348,9 @@
 
     </div>
 
-    <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. Vault withdrawals/deposits require valid on-chain instructions signed by the original vault owner wallet; this can be done via this app or other compatible Solana clients. One vault per wallet.</div>
+    <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v5.7 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
+        MySOL Vault v5.8 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -397,6 +398,22 @@
     </div>
 </div>
 
+<div id="disclaimer-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+            <h2 style="font-size:14px; color:#fff;">Full Disclaimer</h2>
+            <span id="close-disclaimer" class="modal-close">✕</span>
+        </div>
+        <div class="info-row">⚠️ <b>Use at your own risk</b> — MySOL Vault is experimental software. You are solely responsible for your transactions, wallet security, and funds.</div>
+        <div class="info-row">🔐 <b>Wallet authority requirement</b> — vault withdrawals/deposits require valid on-chain instructions signed by the original vault owner wallet; this can be done via this app or other compatible Solana clients.</div>
+        <div class="info-row">🧩 <b>Client compatibility</b> — this GitHub page is one interface, not the only one. Any client that builds correct instructions/accounts and gets your wallet signature can interact with the vault.</div>
+        <div class="info-row">📉 <b>No guarantees</b> — this tool is a behavioral guardrail. It does not guarantee profits, prevent all losses, or eliminate all security risks.</div>
+        <div class="info-row">🧪 <b>Network caution</b> — devnet helpers (reset/end-enforcement) are testing tools. Confirm program IDs and network before use.</div>
+        <div class="info-row">🧾 <b>Liability</b> — developer(s) are not liable for direct or indirect losses, including transaction errors, user mistakes, wallet compromise, or third-party service failures.</div>
+        <div class="info-row"><b>One vault per wallet.</b> This app derives a deterministic PDA vault per owner wallet for this program.</div>
+    </div>
+</div>
+
 <script>
 const PROGRAM_ID_STR  = "2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV";
 const USDC_MINTS = {
@@ -438,6 +455,13 @@ document.getElementById('open-modal').addEventListener('click', (e) => {
 });
 document.getElementById('close-modal').addEventListener('click', () => {
     document.getElementById('how-modal').style.display = 'none';
+});
+document.getElementById('open-disclaimer').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('disclaimer-modal').style.display = 'flex';
+});
+document.getElementById('close-disclaimer').addEventListener('click', () => {
+    document.getElementById('disclaimer-modal').style.display = 'none';
 });
 
 // ── Encoding ──────────────────────────────────────────────────────────────────
