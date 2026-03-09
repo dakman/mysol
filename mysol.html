@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v3.4</title>
+    <title>MySOL | Spending Vault v3.6</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -93,13 +93,13 @@
         .btn { width: 100%; padding: 9px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; font-size: 12px; transition: opacity 0.2s, transform 0.1s; }
         .btn:active { transform: scale(0.98); }
         .btn:disabled { opacity: 0.12; cursor: not-allowed; transform: none; }
-        .btn-sol      { background: var(--sol); color: #fff; }
-        .btn-good     { background: var(--success); color: #000; }
-        .btn-ghost    { background: transparent; border: 1px solid var(--border); color: #fff; font-size: 11px; padding: 7px; }
-        .btn-ghost-sol  { background: var(--sol); border: none; color: #fff; }
-        .btn-ghost-good { background: var(--success); border: none; color: #fff; }
-        .btn-ghost-usdc { background: var(--usdc); border: none; color: #fff; }
-        .btn-ghost-warn { background: var(--warn); border: none; color: #fff; font-size: 11px; padding: 7px; }
+        .btn-sol      { background: #2f2f2f; color: #fff; }
+        .btn-good     { background: #2f2f2f; color: #fff; }
+        .btn-ghost    { background: #2f2f2f; border: none; color: #fff; font-size: 11px; padding: 7px; }
+        .btn-ghost-sol  { background: #2f2f2f; border: none; color: #fff; }
+        .btn-ghost-good { background: #2f2f2f; border: none; color: #fff; }
+        .btn-ghost-usdc { background: #2f2f2f; border: none; color: #fff; }
+        .btn-ghost-warn { background: #2f2f2f; border: none; color: #fff; font-size: 11px; padding: 7px; }
 
         /* ── Alert ── */
         .alert { border-radius: 6px; padding: 7px 10px; font-size: 11px; line-height: 1.4; border: 1px solid; }
@@ -148,7 +148,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v3.4</h1>
+            <h1>MySOL Vault v3.6</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -330,7 +330,7 @@
 
     </div>
 
-    <div class="footer">MySOL Vault v3.4 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU</div>
+    <div class="footer">MySOL Vault v3.6 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU</div>
 </div>
 
 <div id="how-modal" class="modal-overlay">
@@ -1126,13 +1126,115 @@ document.getElementById('withdraw-amount').addEventListener('input', () => {
 
 document.getElementById('close-vault-btn').addEventListener('click', async () => {
     if (currentNetwork !== 'devnet') return;
-    if (!confirm('Reset vault? DEVNET ONLY.')) return;
+    if (!confirm('Reset vault on devnet? This will auto-withdraw available SOL/USDC first.')) return;
     try {
-        setStatus('s2-status', 'Resetting...');
+        setStatus('s2-status', 'Preparing auto-withdraw...');
+        const vaultState = await readVault();
+        const nowSec = BigInt(Math.floor(Date.now() / 1000));
+        const dayLimitSec = 86400n;
+        const isActive = vaultState ? nowSec < vaultState.expiryDate : false;
+        const solSpent = (vaultState && (nowSec - vaultState.lastWithdrawSol <= dayLimitSec)) ? vaultState.withdrawnSol : 0n;
+        const usdcSpent = (vaultState && (nowSec - vaultState.lastWithdrawUsdc <= dayLimitSec)) ? vaultState.withdrawnUsdc : 0n;
+        const solRem = vaultState ? (vaultState.dailyLimitSol > solSpent ? vaultState.dailyLimitSol - solSpent : 0n) : 0n;
+        const usdcRem = vaultState ? (vaultState.dailyLimitUsdc > usdcSpent ? vaultState.dailyLimitUsdc - usdcSpent : 0n) : 0n;
+
+        // 1) Auto-withdraw USDC from vault ATA to user ATA.
         const vaultTokenInfo = await detectTokenProgram(vaultPDA, getUsdcMint());
         const usdcProgStr = vaultTokenInfo.program || SPL_TOKEN_PROG;
         const usdcMintPk = new PublicKey(getUsdcMint());
         const vaultATA = await deriveATA(vaultPDA, getUsdcMint(), usdcProgStr);
+        const userATA = window._userUsdcATA || await deriveATA(walletPubkey, getUsdcMint(), usdcProgStr);
+        const userATAInfo = await connection.getAccountInfo(userATA);
+        if (!userATAInfo) {
+            setStatus('s2-status', 'Creating your USDC ATA...');
+            await sendAndConfirm('s2-status', createATAInstruction(walletPubkey, userATA, walletPubkey, usdcMintPk, usdcProgStr));
+        }
+
+        let vaultUsdcBal = 0n;
+        try {
+            const tokenBal = await connection.getTokenAccountBalance(vaultATA);
+            vaultUsdcBal = BigInt(tokenBal.value.amount);
+        } catch (_) {}
+
+        if (vaultUsdcBal > 0n) {
+            const usdcToWithdraw = isActive
+                ? (vaultUsdcBal > usdcRem ? usdcRem : vaultUsdcBal)
+                : vaultUsdcBal;
+            if (usdcToWithdraw > 0n) {
+                setStatus('s2-status', 'Auto-withdrawing USDC...');
+                const dUsdc = await disc('withdraw_usdc');
+                const dataUsdc = new Uint8Array(16);
+                dataUsdc.set(dUsdc, 0);
+                dataUsdc.set(encodeU64(usdcToWithdraw), 8);
+                const ixUsdc = new TransactionInstruction({
+                    programId: new PublicKey(PROGRAM_ID_STR),
+                    keys: [
+                        { pubkey: vaultPDA,      isSigner: false, isWritable: true  },
+                        { pubkey: usdcMintPk,    isSigner: false, isWritable: false },
+                        { pubkey: vaultATA,      isSigner: false, isWritable: true  },
+                        { pubkey: userATA,       isSigner: false, isWritable: true  },
+                        { pubkey: walletPubkey,  isSigner: true,  isWritable: true  },
+                        { pubkey: new PublicKey(usdcProgStr), isSigner: false, isWritable: false },
+                    ],
+                    data: dataUsdc,
+                });
+                await sendAndConfirm('s2-status', ixUsdc);
+            }
+        }
+
+        // 2) Auto-withdraw SOL above rent reserve.
+        const vaultAccInfo = await connection.getAccountInfo(vaultPDA);
+        if (vaultAccInfo) {
+            const rentMin = BigInt(await connection.getMinimumBalanceForRentExemption(vaultAccInfo.data.length));
+            const currentLamports = BigInt(vaultAccInfo.lamports);
+            const withdrawableSol = currentLamports > rentMin ? (currentLamports - rentMin) : 0n;
+            if (withdrawableSol > 0n) {
+                const solToWithdraw = isActive
+                    ? (withdrawableSol > solRem ? solRem : withdrawableSol)
+                    : withdrawableSol;
+                if (solToWithdraw > 0n) {
+                    setStatus('s2-status', 'Auto-withdrawing SOL...');
+                    const dSol = await disc('withdraw_sol');
+                    const dataSol = new Uint8Array(16);
+                    dataSol.set(dSol, 0);
+                    dataSol.set(encodeU64(solToWithdraw), 8);
+                    const ixSol = new TransactionInstruction({
+                        programId: new PublicKey(PROGRAM_ID_STR),
+                        keys: [
+                            { pubkey: vaultPDA,               isSigner: false, isWritable: true },
+                            { pubkey: walletPubkey,           isSigner: true,  isWritable: true },
+                            { pubkey: SystemProgram.programId,isSigner: false, isWritable: false },
+                        ],
+                        data: dataSol,
+                    });
+                    await sendAndConfirm('s2-status', ixSol);
+                }
+            }
+        }
+
+        // 3) Verify vault is now drainable; if not, daily limits likely blocked full drain.
+        const latestVaultAcc = await connection.getAccountInfo(vaultPDA);
+        const latestVaultATAInfo = await connection.getAccountInfo(vaultATA);
+        const latestUsdcBal = latestVaultATAInfo
+            ? BigInt((await connection.getTokenAccountBalance(vaultATA)).value.amount)
+            : 0n;
+        let latestWithdrawableSol = 0n;
+        if (latestVaultAcc) {
+            const rentMinLatest = BigInt(await connection.getMinimumBalanceForRentExemption(latestVaultAcc.data.length));
+            latestWithdrawableSol = BigInt(latestVaultAcc.lamports) > rentMinLatest
+                ? BigInt(latestVaultAcc.lamports) - rentMinLatest
+                : 0n;
+        }
+        if (latestUsdcBal > 0n || latestWithdrawableSol > 0n) {
+            setStatus(
+                's2-status',
+                'Vault still has funds above current daily limits. Withdraw remaining later or wait until enforcement expires.',
+                'warn'
+            );
+            return;
+        }
+
+        setStatus('s2-status', 'Resetting vault...');
         let d = await disc('reset_vault_devnet');
         let ix = new TransactionInstruction({
             programId: new PublicKey(PROGRAM_ID_STR),
