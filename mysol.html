@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v3.2</title>
+    <title>MySOL | Spending Vault v3.4</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -60,10 +60,10 @@
         .stat.wide { grid-column: 1 / -1; }
         .stat-label { font-size: 9px; color: #aaa; text-transform: uppercase; font-weight: 700; margin-bottom: 2px; }
         .stat-value { font-size: 12px; font-weight: 700; color: #fff; }
-        .stat-value.good   { color: var(--success); }
-        .stat-value.warn   { color: var(--warn); }
-        .stat-value.danger { color: var(--sol); }
-        .stat-value.usdc   { color: var(--usdc); }
+        .stat-value.good   { color: #fff; }
+        .stat-value.warn   { color: #ddd; }
+        .stat-value.danger { color: #fff; }
+        .stat-value.usdc   { color: #fff; }
 
         /* ── Progress ── */
         .prog-wrap { background: var(--border); border-radius: 3px; height: 3px; overflow: hidden; margin-top: 5px; }
@@ -84,10 +84,10 @@
         .field input { width: 100%; padding: 8px 10px; background: #000; border: 1px solid var(--border); color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; outline: none; transition: border-color 0.2s; }
         .field input:focus { border-color: #666; }
         .hint { font-size: 10px; color: #aaa; font-family: monospace; line-height: 1.4; }
-        .hint.good   { color: var(--success); }
-        .hint.warn   { color: var(--warn); }
-        .hint.danger { color: var(--sol); }
-        .hint.usdc   { color: var(--usdc); }
+        .hint.good   { color: #fff; }
+        .hint.warn   { color: #ddd; }
+        .hint.danger { color: #fff; }
+        .hint.usdc   { color: #fff; }
 
         /* ── Buttons ── */
         .btn { width: 100%; padding: 9px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; font-size: 12px; transition: opacity 0.2s, transform 0.1s; }
@@ -96,10 +96,10 @@
         .btn-sol      { background: var(--sol); color: #fff; }
         .btn-good     { background: var(--success); color: #000; }
         .btn-ghost    { background: transparent; border: 1px solid var(--border); color: #fff; font-size: 11px; padding: 7px; }
-        .btn-ghost-sol  { background: transparent; border: 1px solid var(--sol); color: var(--sol); }
-        .btn-ghost-good { background: transparent; border: 1px solid var(--success); color: var(--success); }
-        .btn-ghost-usdc { background: transparent; border: 1px solid var(--usdc); color: var(--usdc); }
-        .btn-ghost-warn { background: transparent; border: 1px solid var(--warn); color: var(--warn); font-size: 11px; padding: 7px; }
+        .btn-ghost-sol  { background: var(--sol); border: none; color: #fff; }
+        .btn-ghost-good { background: var(--success); border: none; color: #fff; }
+        .btn-ghost-usdc { background: var(--usdc); border: none; color: #fff; }
+        .btn-ghost-warn { background: var(--warn); border: none; color: #fff; font-size: 11px; padding: 7px; }
 
         /* ── Alert ── */
         .alert { border-radius: 6px; padding: 7px 10px; font-size: 11px; line-height: 1.4; border: 1px solid; }
@@ -148,7 +148,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v3.2</h1>
+            <h1>MySOL Vault v3.4</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -330,7 +330,7 @@
 
     </div>
 
-    <div class="footer">MySOL Vault v3.2 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU</div>
+    <div class="footer">MySOL Vault v3.4 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU</div>
 </div>
 
 <div id="how-modal" class="modal-overlay">
@@ -373,6 +373,7 @@ let lastRefreshAtMs = 0;
 const REFRESH_COOLDOWN_MS = 2500;
 const TOKEN_CACHE_TTL_MS = 12000;
 const tokenAccountCache = new Map();
+const statusFadeTimers = new Map();
 
 // Modal logic
 document.getElementById('open-modal').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('how-modal').style.display = 'flex'; });
@@ -403,7 +404,29 @@ function solFmt(lamports)     { return (Number(lamports) / 1e9).toFixed(4) + ' S
 function usdcFmt(microUsdc)   { return (Number(microUsdc) / 1e6).toFixed(2) + ' USDC'; }
 function setStatus(id, msg, cls='') {
     const el = document.getElementById(id);
-    el.innerText = msg; el.className = 'status-bar' + (cls ? ' '+cls : '');
+    if (statusFadeTimers.has(id)) {
+        clearTimeout(statusFadeTimers.get(id));
+        statusFadeTimers.delete(id);
+    }
+    el.style.opacity = '1';
+    el.innerText = msg;
+    el.className = 'status-bar' + (cls ? ' '+cls : '');
+
+    // Fade out transient success notices for deposit/withdraw actions.
+    if ((id === 's4-status' || id === 's5-status') && cls === 'ok' && msg) {
+        const timer = setTimeout(() => {
+            el.style.transition = 'opacity 0.8s ease';
+            el.style.opacity = '0';
+            setTimeout(() => {
+                el.innerText = '';
+                el.className = 'status-bar';
+                el.style.transition = '';
+                el.style.opacity = '1';
+            }, 850);
+            statusFadeTimers.delete(id);
+        }, 2200);
+        statusFadeTimers.set(id, timer);
+    }
 }
 function findProvider() {
     if (window.solana?.isPhantom)    return window.solana;
