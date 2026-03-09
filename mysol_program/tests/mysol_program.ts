@@ -28,7 +28,7 @@ describe("mysol_program", () => {
 
     // Derive vault PDA
     [vaultPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vault"), user.publicKey.toBuffer()],
+      [Buffer.from("vault"), user.publicKey.toBuffer(), Buffer.from("v2")],
       program.programId
     );
 

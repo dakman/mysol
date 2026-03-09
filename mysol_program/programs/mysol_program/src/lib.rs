@@ -99,7 +99,7 @@ pub mod mysol_program {
 
         // CPI into SPL Token / Token-2022 — vault PDA signs via invoke_signed
         let user_key = ctx.accounts.user.key();
-        let seeds: &[&[u8]] = &[b"vault", user_key.as_ref(), &[ctx.bumps.vault]];
+        let seeds: &[&[u8]] = &[b"vault", user_key.as_ref(), b"v2", &[ctx.bumps.vault]];
 
         token_interface::transfer_checked(
             CpiContext::new_with_signer(
@@ -142,7 +142,7 @@ pub mod mysol_program {
         );
 
         let user_key = ctx.accounts.user.key();
-        let seeds: &[&[u8]] = &[b"vault", user_key.as_ref(), &[ctx.bumps.vault]];
+        let seeds: &[&[u8]] = &[b"vault", user_key.as_ref(), b"v2", &[ctx.bumps.vault]];
         token_interface::close_account(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -178,7 +178,7 @@ pub mod mysol_program {
         );
 
         let user_key = ctx.accounts.user.key();
-        let seeds: &[&[u8]] = &[b"vault", user_key.as_ref(), &[ctx.bumps.vault]];
+        let seeds: &[&[u8]] = &[b"vault", user_key.as_ref(), b"v2", &[ctx.bumps.vault]];
         token_interface::close_account(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -203,7 +203,7 @@ pub struct Initialize<'info> {
         init,
         payer = user,
         space = 8 + 32 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 32,
-        seeds = [b"vault", user.key().as_ref()],
+        seeds = [b"vault", user.key().as_ref(), b"v2"],
         bump
     )]
     pub vault: Account<'info, VaultState>,
@@ -227,7 +227,7 @@ pub struct Initialize<'info> {
 pub struct WithdrawSol<'info> {
     #[account(
         mut,
-        seeds = [b"vault", user.key().as_ref()],
+        seeds = [b"vault", user.key().as_ref(), b"v2"],
         bump,
         constraint = vault.owner == user.key() @ VaultError::Unauthorized
     )]
@@ -241,7 +241,7 @@ pub struct WithdrawSol<'info> {
 pub struct WithdrawUsdc<'info> {
     #[account(
         mut,
-        seeds = [b"vault", user.key().as_ref()],
+        seeds = [b"vault", user.key().as_ref(), b"v2"],
         bump,
         constraint = vault.owner == user.key() @ VaultError::Unauthorized
     )]
@@ -278,7 +278,7 @@ pub struct CloseVault<'info> {
     #[account(
         mut,
         close = user,
-        seeds = [b"vault", user.key().as_ref()],
+        seeds = [b"vault", user.key().as_ref(), b"v2"],
         bump,
         constraint = vault.owner == user.key() @ VaultError::Unauthorized
     )]

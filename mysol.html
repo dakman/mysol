@@ -416,7 +416,7 @@ function markDone(id) { const e = document.getElementById(id); e.classList.remov
 
 async function deriveVaultPDA() {
     const [pda] = await PublicKey.findProgramAddress(
-        [new TextEncoder().encode('vault'), walletPubkey.toBytes()],
+        [new TextEncoder().encode('vault'), walletPubkey.toBytes(), new TextEncoder().encode('v2')],
         new PublicKey(PROGRAM_ID_STR)
     );
     return pda;
