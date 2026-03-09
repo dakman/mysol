@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v4.8</title>
+    <title>MySOL | Spending Vault v4.9</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -158,7 +158,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v4.8</h1>
+            <h1>MySOL Vault v4.9</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -328,7 +328,7 @@
 
         <div class="tile locked" id="tile-6">
             <div class="tile-head">
-                <div><div class="tile-label">Vault Activity</div><div class="tile-title">Recent Transactions</div></div>
+                <div><div class="tile-label">Vault Activity</div><div class="tile-title">Recent Vault Transactions</div></div>
                 <div class="tile-num">📜</div>
             </div>
             <div class="tile-body">
@@ -341,7 +341,7 @@
     </div>
 
     <div class="footer">
-        MySOL Vault v4.8 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
+        MySOL Vault v4.9 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -728,13 +728,13 @@ async function fetchHistory() {
                     if (parsed?.type === 'transfer' && parsed?.info?.lamports != null) {
                         const info = parsed.info;
                         if (info.destination === vaultPDA.toBase58()) {
-                            actionLabel = 'Deposit SOL';
-                            amountLabel = `Deposit ${solFmt(BigInt(info.lamports))}`;
+                            actionLabel = `Deposit ${solFmt(BigInt(info.lamports))} (SOL)`;
+                            amountLabel = '';
                             break;
                         }
                         if (info.source === vaultPDA.toBase58()) {
-                            actionLabel = 'Withdraw SOL';
-                            amountLabel = `Withdraw ${solFmt(BigInt(info.lamports))}`;
+                            actionLabel = `Withdraw ${solFmt(BigInt(info.lamports))} (SOL)`;
+                            amountLabel = '';
                             break;
                         }
                     }
@@ -749,13 +749,13 @@ async function fetchHistory() {
                         const dst = info.destination;
                         const amt = BigInt(info.amount);
                         if (dst === vaultAtaStd || dst === vaultAta2022) {
-                            actionLabel = 'Deposit USDC';
-                            amountLabel = `Deposit ${usdcFmt(amt)}`;
+                            actionLabel = `Deposit ${usdcFmt(amt)} (USDC)`;
+                            amountLabel = '';
                             break;
                         }
                         if (src === vaultAtaStd || src === vaultAta2022) {
-                            actionLabel = 'Withdraw USDC';
-                            amountLabel = `Withdraw ${usdcFmt(amt)}`;
+                            actionLabel = `Withdraw ${usdcFmt(amt)} (USDC)`;
+                            amountLabel = '';
                             break;
                         }
                     }
@@ -773,13 +773,13 @@ async function fetchHistory() {
                                 break;
                             }
                             if (dHex === dWithdrawSolHex) {
-                                actionLabel = 'Withdraw SOL';
-                                amountLabel = `Withdraw ${solFmt(amt)}`;
+                                actionLabel = `Withdraw ${solFmt(amt)} (SOL)`;
+                                amountLabel = '';
                                 break;
                             }
                             if (dHex === dWithdrawUsdcHex) {
-                                actionLabel = 'Withdraw USDC';
-                                amountLabel = `Withdraw ${usdcFmt(amt)}`;
+                                actionLabel = `Withdraw ${usdcFmt(amt)} (USDC)`;
+                                amountLabel = '';
                                 break;
                             }
                             if (dHex === dCloseHex) {
