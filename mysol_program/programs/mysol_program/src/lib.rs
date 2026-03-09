@@ -14,13 +14,19 @@ pub mod mysol_program {
         ctx: Context<Initialize>,
         daily_limit_sol: u64,
         daily_limit_usdc: u64,
-        enforce_days: i64,
+        enforce_interval: i64,
+        enforce_unit: u8,
     ) -> Result<()> {
         let vault        = &mut ctx.accounts.vault;
         let clock        = Clock::get()?;
-        require!(enforce_days > 0, VaultError::InvalidEnforcementDays);
-        let enforce_seconds = enforce_days
-            .checked_mul(86_400)
+        require!(enforce_interval > 0, VaultError::InvalidEnforcementDays);
+        let unit_seconds = match enforce_unit {
+            0 => 86_400_i64, // days
+            1 => 60_i64,     // minutes (testing convenience)
+            _ => return err!(VaultError::InvalidEnforcementUnit),
+        };
+        let enforce_seconds = enforce_interval
+            .checked_mul(unit_seconds)
             .ok_or(error!(VaultError::MathOverflow))?;
         let expiry_date = clock
             .unix_timestamp
@@ -36,8 +42,13 @@ pub mod mysol_program {
         vault.withdrawn_sol      = 0;
         vault.withdrawn_usdc     = 0;
         vault.expiry_date        = expiry_date;
-        msg!("Vault initialised. SOL: {} lamports/day, USDC: {} micro/day, {} days.",
-            daily_limit_sol, daily_limit_usdc, enforce_days);
+        msg!(
+            "Vault initialised. SOL: {} lamports/day, USDC: {} micro/day, interval: {} (unit={}).",
+            daily_limit_sol,
+            daily_limit_usdc,
+            enforce_interval,
+            enforce_unit
+        );
         Ok(())
     }
 
@@ -362,6 +373,8 @@ pub enum VaultError {
     InsufficientVaultSol,
     #[msg("Invalid enforcement period.")]
     InvalidEnforcementDays,
+    #[msg("Invalid enforcement unit.")]
+    InvalidEnforcementUnit,
     #[msg("Math overflow.")]
     MathOverflow,
 }

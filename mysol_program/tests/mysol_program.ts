@@ -43,9 +43,10 @@ describe("mysol_program", () => {
     const dailyLimitSol = new anchor.BN(1_000_000_000); // 1 SOL in lamports
     const dailyLimitUsdc = new anchor.BN(100_000_000); // 100 USDC in micro units
     const enforceDays = new anchor.BN(30);
+    const enforceUnitDays = 0;
 
     const tx = await program.methods
-      .initializeVault(dailyLimitSol, dailyLimitUsdc, enforceDays)
+      .initializeVault(dailyLimitSol, dailyLimitUsdc, enforceDays, enforceUnitDays)
       .accounts({
         vault: vaultPda,
         usdcMint,

@@ -81,7 +81,7 @@ Unlike systems that reset at a fixed time, MySOL Vault uses a **Relative Rolling
 
 ### Operation Steps
 1.  **Connect Wallet:** Link your wallet via the UI.
-2.  **Burn Rules:** Set your Daily Limit (for SOL and USDC) and Enforcement Days.
+2.  **Burn Rules:** Set your Daily Limit (for SOL and USDC), enforcement interval, and unit (Days or Minutes for testing).
 3.  **Fund:** Send SOL or USDC to the Vault PDA address shown in your dashboard.
 4.  **Spend:** Withdraw as needed. The dApp provides a live dashboard showing your "Remaining Today" balance.
 
