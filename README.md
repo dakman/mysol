@@ -9,13 +9,6 @@
 
 ---
 
-## 📸 UI Screenshot
-
-![MySOL Vault v5.0 UI](./assets/mysol-v5-ui.png)
-![MySOL Vault v5.0 Burn Rules and Activity](./assets/mysol-v5-ui-2.png)
-
----
-
 ## Motivations: Why Use a Spending Vault?
 
 The core motivation is **Self-Sovereign Discipline**. In a 24/7 liquid market, the greatest risk to a user's capital is often their own impulsive behavior.
