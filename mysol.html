@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MySOL | Spending Vault v2.5</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
+    <style>
+        :root {
+            --sol: #eb5424;
+            --success: #14F195;
+            --usdc: #2775ca;
+            --warn: #f1c40f;
+            --bg: #000000;
+            --text: #ffffff;
+            --border: #333333;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+        /* ── Topbar ── */
+        .topbar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 20px; border-bottom: 1px solid var(--border);
+            background: #000; position: sticky; top: 0; z-index: 10;
+        }
+        .topbar h1 { font-size: 15px; font-weight: 800; color: #fff; }
+        .topbar .sub { font-size: 10px; color: #aaa; margin-top: 1px; }
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+        .net-pill { display: flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 20px; background: #000; border: 1px solid var(--border); font-size: 10px; color: #ccc; }
+        .net-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--warn); flex-shrink: 0; }
+        .net-dot.live { background: var(--success); }
+        .net-pill select { background: transparent; border: none; color: #fff; font-size: 10px; outline: none; cursor: pointer; }
+        #open-modal { color: #aaa; font-size: 11px; text-decoration: underline; cursor: pointer; transition: color 0.2s; }
+        #open-modal:hover { color: #fff; }
+        #connect-btn-top { padding: 7px 14px; border-radius: 20px; border: none; background: var(--sol); color: #fff; font-weight: 700; font-size: 11px; cursor: pointer; white-space: nowrap; }
+        #connect-btn-top.connected { background: #000; color: var(--success); border: 1px solid var(--success); }
+        #connect-btn-top:disabled { opacity: 0.5; cursor: default; }
+
+        /* ── Grid ── */
+        .grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); }
+
+        /* ── Tile ── */
+        .tile { background: #000; padding: 16px; display: flex; flex-direction: column; gap: 6px; transition: opacity 0.3s; }
+        .tile.locked { opacity: 0.25; pointer-events: none; }
+        .tile.done   { opacity: 0.6; }
+        .tile-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 2px; }
+        .tile-label { font-size: 9px; color: #aaa; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+        .tile-title { font-size: 13px; font-weight: 700; color: #fff; margin-top: 1px; }
+        .tile-num { width: 22px; height: 22px; border-radius: 50%; background: #000; border: 1px solid var(--border); color: #aaa; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .tile.active .tile-num { background: var(--sol); color: #fff; border-color: var(--sol); }
+        .tile.done   .tile-num { background: var(--success); color: #000; border-color: var(--success); }
+        .tile-body { display: flex; flex-direction: column; gap: 6px; }
+
+        /* ── Stats ── */
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .stat { background: #000; border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; }
+        .stat.wide { grid-column: 1 / -1; }
+        .stat-label { font-size: 9px; color: #aaa; text-transform: uppercase; font-weight: 700; margin-bottom: 2px; }
+        .stat-value { font-size: 12px; font-weight: 700; color: #fff; }
+        .stat-value.good   { color: var(--success); }
+        .stat-value.warn   { color: var(--warn); }
+        .stat-value.danger { color: var(--sol); }
+        .stat-value.usdc   { color: var(--usdc); }
+
+        /* ── Progress ── */
+        .prog-wrap { background: var(--border); border-radius: 3px; height: 3px; overflow: hidden; margin-top: 5px; }
+        .prog-bar  { height: 3px; border-radius: 3px; background: var(--success); transition: width 0.5s; }
+        .prog-bar.warn   { background: var(--warn); }
+        .prog-bar.danger { background: var(--sol); }
+        .prog-bar.usdc   { background: var(--usdc); }
+
+        /* ── Token tabs ── */
+        .token-tabs { display: flex; gap: 4px; margin-bottom: 2px; }
+        .ttab { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: #aaa; font-size: 11px; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.15s; }
+        .ttab.active-sol  { border-color: var(--sol); color: var(--sol); }
+        .ttab.active-usdc { border-color: var(--usdc); color: var(--usdc); }
+
+        /* ── Fields ── */
+        .field { display: flex; flex-direction: column; gap: 4px; }
+        .field label { font-size: 9px; color: #aaa; text-transform: uppercase; font-weight: 700; letter-spacing: 0.4px; }
+        .field input { width: 100%; padding: 8px 10px; background: #000; border: 1px solid var(--border); color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; outline: none; transition: border-color 0.2s; }
+        .field input:focus { border-color: #666; }
+        .hint { font-size: 10px; color: #aaa; font-family: monospace; line-height: 1.4; }
+        .hint.good   { color: var(--success); }
+        .hint.warn   { color: var(--warn); }
+        .hint.danger { color: var(--sol); }
+        .hint.usdc   { color: var(--usdc); }
+
+        /* ── Buttons ── */
+        .btn { width: 100%; padding: 9px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; font-size: 12px; transition: opacity 0.2s, transform 0.1s; }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { opacity: 0.12; cursor: not-allowed; transform: none; }
+        .btn-sol      { background: var(--sol); color: #fff; }
+        .btn-good     { background: var(--success); color: #000; }
+        .btn-ghost    { background: transparent; border: 1px solid var(--border); color: #fff; font-size: 11px; padding: 7px; }
+        .btn-ghost-sol  { background: transparent; border: 1px solid var(--sol); color: var(--sol); }
+        .btn-ghost-good { background: transparent; border: 1px solid var(--success); color: var(--success); }
+        .btn-ghost-usdc { background: transparent; border: 1px solid var(--usdc); color: var(--usdc); }
+        .btn-ghost-warn { background: transparent; border: 1px solid var(--warn); color: var(--warn); font-size: 11px; padding: 7px; }
+
+        /* ── Alert ── */
+        .alert { border-radius: 6px; padding: 7px 10px; font-size: 11px; line-height: 1.4; border: 1px solid; }
+        .alert-warn    { background: #000; border-color: var(--warn); color: var(--warn); }
+        .alert-success { background: #000; border-color: var(--success); color: var(--success); }
+
+        /* ── PDA row / Activity Row ── */
+        .pda-row { display: flex; align-items: center; justify-content: space-between; background: #000; border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; gap: 6px; }
+        .pda-label { font-size: 9px; color: #aaa; text-transform: uppercase; font-weight: 700; white-space: nowrap; }
+        .pda-val   { font-size: 10px; color: #fff; font-family: monospace; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pda-row a { font-size: 10px; color: #aaa; text-decoration: none; white-space: nowrap; }
+        .pda-row a:hover { color: #fff; }
+
+        /* ── Status ── */
+        .status-bar { font-size: 10px; color: #aaa; font-family: monospace; word-break: break-all; text-align: center; }
+        .status-bar.ok   { color: var(--success); }
+        .status-bar.err   { color: var(--sol); }
+        .status-bar.warn { color: var(--warn); }
+
+        /* ── Modal ── */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; }
+        .modal-content { background: #000; border: 1px solid var(--border); border-radius: 8px; padding: 20px; max-width: 450px; width: 90%; }
+        .modal-close { cursor: pointer; color: #aaa; font-size: 18px; font-weight: bold; }
+        .modal-close:hover { color: #fff; }
+        .info-row { font-size: 11px; color: #aaa; line-height: 1.5; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .info-row:last-of-type { border-bottom: none; }
+        .info-row b { color: #fff; font-weight: 600; }
+        
+        /* ── History Subtext ── */
+        .tx-time { font-size: 9px; color: #888; margin-top: 2px; font-family: sans-serif; }
+
+        /* ── Footer ── */
+        .footer { text-align: center; padding: 10px; font-size: 10px; color: #666; border-top: 1px solid var(--border); background: #000; }
+
+        /* ── Mobile ── */
+        @media (max-width: 768px) {
+            .topbar { padding: 12px 14px; }
+            .topbar .sub { display: none; }
+            .grid { grid-template-columns: 1fr; background: var(--bg); gap: 0; }
+            .tile { padding: 14px; border-bottom: 1px solid var(--border); }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <div class="topbar">
+        <div>
+            <h1>MySOL Vault v2.5</h1>
+            <div class="sub">Immutable spending rules · SOL + USDC</div>
+        </div>
+        <div class="topbar-right">
+            <a id="open-modal">How It Works</a>
+            <div class="net-pill">
+                <span class="net-dot" id="net-dot"></span>
+                <select id="network">
+                    <option value="devnet" selected>Devnet</option>
+                    <option value="mainnet-beta">Mainnet</option>
+                </select>
+            </div>
+            <button id="connect-btn-top">Connect Wallet</button>
+        </div>
+    </div>
+
+    <div class="grid">
+
+        <div class="tile active" id="tile-1">
+            <div class="tile-head">
+                <div><div class="tile-label">Step 1</div><div class="tile-title">Connect Wallet</div></div>
+                <div class="tile-num" id="t1-num">1</div>
+            </div>
+            <div class="tile-body">
+                <div id="t1-info" style="display:none;" class="stats">
+                    <div class="stat wide">
+                        <div class="stat-label">Wallet</div>
+                        <div class="stat-value" id="t1-addr" style="font-size:10px;font-family:monospace;">—</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">SOL Balance</div>
+                        <div class="stat-value good" id="t1-sol">—</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">USDC Balance</div>
+                        <div class="stat-value usdc" id="t1-usdc">—</div>
+                    </div>
+                </div>
+                <button class="btn btn-sol" id="connect-btn-tile">Connect Wallet</button>
+                <div class="status-bar" id="s1-status"></div>
+            </div>
+        </div>
+
+        <div class="tile locked" id="tile-2">
+            <div class="tile-head">
+                <div><div class="tile-label">Step 2</div><div class="tile-title">Burn Rules</div></div>
+                <div class="tile-num" id="t2-num">2</div>
+            </div>
+            <div class="tile-body">
+                <div id="vault-exists-alert" class="alert alert-success" style="display:none;">
+                    </div>
+                <div id="init-fields">
+                    <div style="display:flex;gap:6px;margin-bottom:6px;">
+                        <div class="field" style="flex:1;">
+                            <label>SOL Limit / day</label>
+                            <input type="number" id="limit-sol" step="0.1" min="0.001">
+                        </div>
+                        <div class="field" style="flex:1;">
+                            <label>USDC Limit / day</label>
+                            <input type="number" id="limit-usdc" step="1" min="0.01">
+                        </div>
+                    </div>
+                    <div class="field" style="margin-bottom:6px;">
+                        <label>Enforcement Period (Days)</label>
+                        <input type="number" id="days" value="90" min="1">
+                    </div>
+                    <button class="btn btn-ghost-sol" id="init-btn" disabled>Sign &amp; Burn Rules</button>
+                </div>
+                <button class="btn btn-ghost-warn" id="close-vault-btn" style="display:none;">Reset Vault (Devnet)</button>
+                <div class="status-bar" id="s2-status"></div>
+            </div>
+        </div>
+
+        <div class="tile locked" id="tile-3">
+            <div class="tile-head">
+                <div><div class="tile-label">Live Status</div><div class="tile-title">Vault Balances</div></div>
+                <div class="tile-num">↻</div>
+            </div>
+            <div class="tile-body">
+                <div class="pda-row" id="pda-row" style="display:none;">
+                    <span class="pda-label">Vault</span>
+                    <span class="pda-val" id="pda-display">—</span>
+                    <a id="pda-link" href="#" target="_blank">↗</a>
+                </div>
+                <div class="stats" id="vault-stats" style="display:none;">
+                    <div class="stat">
+                        <div class="stat-label">Wallet SOL</div>
+                        <div class="stat-value" id="s-wsol">—</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Vault SOL</div>
+                        <div class="stat-value good" id="s-vsol">—</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Wallet USDC</div>
+                        <div class="stat-value usdc" id="s-wusdc">—</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Vault USDC</div>
+                        <div class="stat-value usdc" id="s-vusdc">—</div>
+                    </div>
+                    <div class="stat wide">
+                        <div class="stat-label">SOL Daily Usage</div>
+                        <div class="prog-wrap"><div class="prog-bar" id="prog-sol" style="width:0%"></div></div>
+                        <div style="display:flex;justify-content:space-between;margin-top:3px;">
+                            <span style="font-size:9px;color:#aaa;" id="lbl-sol-spent">—</span>
+                            <span style="font-size:9px;color:#aaa;" id="lbl-sol-rem">—</span>
+                        </div>
+                    </div>
+                    <div class="stat wide">
+                        <div class="stat-label">USDC Daily Usage</div>
+                        <div class="prog-wrap"><div class="prog-bar usdc" id="prog-usdc" style="width:0%"></div></div>
+                        <div style="display:flex;justify-content:space-between;margin-top:3px;">
+                            <span style="font-size:9px;color:#aaa;" id="lbl-usdc-spent">—</span>
+                            <span style="font-size:9px;color:#aaa;" id="lbl-usdc-rem">—</span>
+                        </div>
+                    </div>
+                    <div class="stat wide">
+                        <div class="stat-label">Enforcement</div>
+                        <div class="stat-value" id="s-expiry" style="font-size:11px;">—</div>
+                    </div>
+                </div>
+                <button class="btn btn-ghost" id="refresh-btn" disabled>↻ Refresh</button>
+                <div class="status-bar" id="s3-status"></div>
+            </div>
+        </div>
+
+        <div class="tile locked" id="tile-4">
+            <div class="tile-head">
+                <div><div class="tile-label">Step 3</div><div class="tile-title">Fund Vault</div></div>
+                <div class="tile-num" id="t4-num">3</div>
+            </div>
+            <div class="tile-body">
+                <div class="token-tabs">
+                    <button class="ttab active-sol" id="fund-tab-sol" onclick="setFundToken('sol')">SOL</button>
+                    <button class="ttab" id="fund-tab-usdc" onclick="setFundToken('usdc')">USDC</button>
+                </div>
+                <div class="field">
+                    <label id="fund-amount-label">Amount to Deposit (SOL)</label>
+                    <input type="number" id="fund-amount" step="0.1" min="0.000001">
+                    <div class="hint" id="fund-hint">Connect wallet to see available balance.</div>
+                </div>
+                <button class="btn btn-ghost-good" id="fund-btn" disabled>Deposit SOL into Vault</button>
+                <div class="status-bar" id="s4-status"></div>
+            </div>
+        </div>
+
+        <div class="tile locked" id="tile-5">
+            <div class="tile-head">
+                <div><div class="tile-label">Step 4</div><div class="tile-title">Withdraw</div></div>
+                <div class="tile-num" id="t5-num">4</div>
+            </div>
+            <div class="tile-body">
+                <div class="token-tabs">
+                    <button class="ttab active-sol" id="wd-tab-sol" onclick="setWdToken('sol')">SOL</button>
+                    <button class="ttab" id="wd-tab-usdc" onclick="setWdToken('usdc')">USDC</button>
+                </div>
+                <div class="field">
+                    <label id="wd-amount-label">Amount to Withdraw (SOL)</label>
+                    <input type="number" id="withdraw-amount" step="0.01" min="0.000001">
+                    <div class="hint" id="withdraw-hint">Fund vault first.</div>
+                </div>
+                <div id="withdraw-warning" class="alert alert-warn" style="display:none;font-size:10px;"></div>
+                <button class="btn btn-ghost-sol" id="withdraw-btn" disabled>Withdraw SOL</button>
+                <div class="status-bar" id="s5-status"></div>
+            </div>
+        </div>
+
+        <div class="tile locked" id="tile-6">
+            <div class="tile-head">
+                <div><div class="tile-label">Vault Activity</div><div class="tile-title">Recent Transactions</div></div>
+                <div class="tile-num">📜</div>
+            </div>
+            <div class="tile-body">
+                <div id="tx-history" style="display:flex; flex-direction:column; gap:6px;">
+                    <div style="font-size:11px; color:#888;">Waiting for vault...</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer">MySOL Vault v2.5 · Program: Ed3m1f...w4bt · Devnet USDC: 4zMMC9...ncDU</div>
+</div>
+
+<div id="how-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+            <h2 style="font-size:14px; color:#fff;">How It Works</h2>
+            <span id="close-modal" class="modal-close">✕</span>
+        </div>
+        <div class="info-row">🔒 <b>Immutable</b> — rules locked on-chain forever once upgrade authority is burned.</div>
+        <div class="info-row">⛔ <b>On-chain enforcement</b> — blockchain rejects over-limit withdrawals, not just this app.</div>
+        <div class="info-row">💵 <b>SOL + USDC</b> — separate daily limits for each token. Both tracked independently.</div>
+        <div class="info-row">🏦 <b>Spending account</b> — fund the vault, spend from it. Limit applies to every tx out.</div>
+        <div class="info-row">🔑 <b>No private key</b> — vault PDA can't be imported. Only your program moves funds out.</div>
+        <a id="faucet-link" href="https://faucet.solana.com" target="_blank" style="display:none; margin-top:10px;" class="btn btn-ghost">Get Devnet SOL ↗</a>
+    </div>
+</div>
+
+<script>
+const PROGRAM_ID_STR  = "Ed3m1fhxygWysgyLSLryp3haQNcvMri8MkrqGvNDw4bt";
+const USDC_MINTS = {
+    'devnet':       '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
+    'mainnet-beta': 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+};
+function getUsdcMint() { return USDC_MINTS[currentNetwork]; }
+const SPL_TOKEN_PROG  = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
+
+const { Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram } = solanaWeb3;
+
+let connection     = new Connection('https://api.devnet.solana.com', 'confirmed');
+let walletPubkey   = null;
+let walletProvider = null;
+let currentNetwork = 'devnet';
+let vaultPDA       = null;
+let vaultData      = null;
+let fundToken      = 'sol';
+let wdToken        = 'sol';
+let wsSubscriptionId = null; 
+let refreshInFlight = null;
+let lastRefreshAtMs = 0;
+const REFRESH_COOLDOWN_MS = 2500;
+const TOKEN_CACHE_TTL_MS = 12000;
+const tokenAccountCache = new Map();
+
+// Modal logic
+document.getElementById('open-modal').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('how-modal').style.display = 'flex'; });
+document.getElementById('close-modal').addEventListener('click', () => { document.getElementById('how-modal').style.display = 'none'; });
+
+// ── Encoding ──────────────────────────────────────────────────────────────────
+function encodeU64(v) {
+    const b = new Uint8Array(8); let n = BigInt(v);
+    for (let i = 0; i < 8; i++) { b[i] = Number(n & 0xffn); n >>= 8n; } return b;
+}
+function encodeI64(v) {
+    const b = new Uint8Array(8); let n = BigInt(v);
+    if (n < 0n) n += (1n << 64n);
+    for (let i = 0; i < 8; i++) { b[i] = Number(n & 0xffn); n >>= 8n; } return b;
+}
+function decodeU64(view, o) {
+    let v = 0n; for (let i = 0; i < 8; i++) v |= BigInt(view.getUint8(o+i)) << BigInt(i*8); return v;
+}
+function decodeI64(view, o) {
+    let v = 0n; for (let i = 0; i < 8; i++) v |= BigInt(view.getUint8(o+i)) << BigInt(i*8);
+    if (v >= (1n << 63n)) v -= (1n << 64n); return v;
+}
+async function disc(name) {
+    const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('global:' + name));
+    return new Uint8Array(h).slice(0, 8);
+}
+function solFmt(lamports)     { return (Number(lamports) / 1e9).toFixed(4) + ' SOL'; }
+function usdcFmt(microUsdc)   { return (Number(microUsdc) / 1e6).toFixed(2) + ' USDC'; }
+function setStatus(id, msg, cls='') {
+    const el = document.getElementById(id);
+    el.innerText = msg; el.className = 'status-bar' + (cls ? ' '+cls : '');
+}
+function findProvider() {
+    if (window.solana?.isPhantom)    return window.solana;
+    if (window.solflare?.isSolflare) return window.solflare;
+    if (window.solana)               return window.solana;
+    return null;
+}
+function unlock(id) { const e = document.getElementById(id); e.classList.remove('locked'); e.classList.add('active'); }
+function markDone(id) { const e = document.getElementById(id); e.classList.remove('active'); e.classList.add('done'); }
+
+async function deriveVaultPDA() {
+    const [pda] = await PublicKey.findProgramAddress(
+        [new TextEncoder().encode('vault'), walletPubkey.toBytes()],
+        new PublicKey(PROGRAM_ID_STR)
+    );
+    return pda;
+}
+
+const ATA_PROGRAM   = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bS8";
+const SPL_TOKEN     = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
+const SPL_TOKEN2022 = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
+
+async function deriveATA(owner, mint, tokenProgram = SPL_TOKEN) {
+    const [ata] = await PublicKey.findProgramAddress(
+        [
+            owner.toBytes(),
+            new PublicKey(tokenProgram).toBytes(),
+            new PublicKey(mint).toBytes(),
+        ],
+        new PublicKey(ATA_PROGRAM)
+    );
+    return ata;
+}
+
+// Deeply queries the blockchain to find ANY token account owned by this address for this mint
+async function detectTokenProgram(owner, mint) {
+    const ownerStr = typeof owner === 'string' ? owner : owner.toBase58();
+    const mintStr = typeof mint === 'string' ? mint : mint.toBase58();
+    const cacheKey = `${currentNetwork}:${ownerStr}:${mintStr}`;
+    const cached = tokenAccountCache.get(cacheKey);
+    if (cached && (Date.now() - cached.atMs) < TOKEN_CACHE_TTL_MS) {
+        return cached.value;
+    }
+
+    const matches = [];
+    for (const prog of [SPL_TOKEN, SPL_TOKEN2022]) {
+        try {
+            const res = await connection.getParsedTokenAccountsByOwner(owner, {
+                programId: new PublicKey(prog)
+            });
+            for (const a of res.value) {
+                const info = a.account.data.parsed.info;
+                if (info.mint === mintStr) {
+                    matches.push({
+                        ata:     a.pubkey,
+                        program: prog,
+                        balance: BigInt(info.tokenAmount.amount)
+                    });
+                }
+            }
+        } catch(e) {}
+    }
+
+    if (matches.length > 0) {
+        let total = 0n;
+        for (const m of matches) total += m.balance;
+
+        const ataByProg = {};
+        for (const prog of [SPL_TOKEN, SPL_TOKEN2022]) {
+            try {
+                ataByProg[prog] = (await deriveATA(owner, mint, prog)).toBase58();
+            } catch (_) {}
+        }
+
+        let preferred = null;
+        for (const m of matches) {
+            const derived = ataByProg[m.program];
+            if (derived && m.ata.toBase58() === derived) {
+                preferred = m;
+                break;
+            }
+        }
+        if (!preferred) {
+            preferred = matches.reduce((best, cur) => cur.balance > best.balance ? cur : best, matches[0]);
+        }
+
+        const out = { ata: preferred.ata, program: preferred.program, balance: total };
+        tokenAccountCache.set(cacheKey, { atMs: Date.now(), value: out });
+        return out;
+    }
+
+    const ataStd = await deriveATA(owner, mint, SPL_TOKEN);
+    const out = { ata: ataStd, program: SPL_TOKEN, balance: 0n };
+    tokenAccountCache.set(cacheKey, { atMs: Date.now(), value: out });
+    return out;
+}
+
+function clearRpcCaches() {
+    tokenAccountCache.clear();
+    lastRefreshAtMs = 0;
+}
+
+async function sendAndConfirm(statusId, ...instructions) {
+    try {
+        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+        const tx = new Transaction({ feePayer: walletPubkey, blockhash, lastValidBlockHeight });
+        instructions.forEach(ix => tx.add(ix));
+        
+        setStatus(statusId, 'Waiting for approval...');
+        const signed = await walletProvider.signTransaction(tx);
+        
+        setStatus(statusId, 'Sending...');
+        const sig = await connection.sendRawTransaction(signed.serialize());
+        
+        setStatus(statusId, 'Confirming...');
+        await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed');
+
+        // confirmTransaction only confirms inclusion/finality; inspect meta.err for true success
+        let chainErr = null;
+        try {
+            const txInfo = await connection.getTransaction(sig, {
+                commitment: 'confirmed',
+                maxSupportedTransactionVersion: 0,
+            });
+            chainErr = txInfo?.meta?.err ?? null;
+        } catch (_) {}
+
+        if (!chainErr) {
+            try {
+                const st = await connection.getSignatureStatuses([sig], { searchTransactionHistory: true });
+                chainErr = st?.value?.[0]?.err ?? null;
+            } catch (_) {}
+        }
+
+        if (chainErr) {
+            throw new Error('On-chain transaction failed: ' + JSON.stringify(chainErr));
+        }
+
+        return sig;
+        
+    } catch (error) {
+        if (error.getLogs) {
+            const logs = await error.getLogs();
+            console.error("🚨 Full Transaction Logs:", logs);
+        } else if (error.logs) {
+            console.error("🚨 Full Transaction Logs:", error.logs);
+        } else {
+            console.error("🚨 Error:", error);
+        }
+        throw error;
+    }
+}
+
+// ── Read vault state ──────────────────────────────
+async function readVault() {
+    if (!vaultPDA) return null;
+    const info = await connection.getAccountInfo(vaultPDA);
+    if (!info) return null;
+    const raw = new Uint8Array(info.data);
+    
+    if (raw.length < 96) {
+        return null;
+    } 
+
+    const view = new DataView(raw.buffer);
+    return {
+        owner:              new PublicKey(raw.slice(8, 40)).toString(),
+        dailyLimitSol:      decodeU64(view, 40),
+        dailyLimitUsdc:     decodeU64(view, 48),
+        lastWithdrawSol:    decodeI64(view, 56),
+        lastWithdrawUsdc:   decodeI64(view, 64),
+        withdrawnSol:       decodeU64(view, 72),
+        withdrawnUsdc:      decodeU64(view, 80),
+        expiryDate:         decodeI64(view, 88), 
+        balanceLamports:    BigInt(info.lamports),
+    };
+}
+
+async function fetchHistory() {
+    if (!vaultPDA) return;
+    try {
+        const sigs = await connection.getSignaturesForAddress(vaultPDA, { limit: 5 });
+        const el = document.getElementById('tx-history');
+        el.innerHTML = '';
+        
+        if(sigs.length === 0) { 
+            el.innerHTML = '<div style="font-size:11px; color:#888;">No activity yet.</div>'; 
+            return; 
+        }
+        
+        for (const s of sigs) {
+            const row = document.createElement('div');
+            row.className = 'pda-row';
+            const clusterStr = currentNetwork === 'devnet' ? '?cluster=devnet' : '';
+            const link = `https://solscan.io/tx/${s.signature}${clusterStr}`;
+            
+            let timeStr = "Unknown time";
+            if (s.blockTime) {
+                const date = new Date(s.blockTime * 1000);
+                timeStr = date.toLocaleString(undefined, { 
+                    month: 'short', day: 'numeric', 
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                });
+            }
+            
+            row.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                    <a href="${link}" target="_blank" style="color:#fff; text-decoration:underline; font-family:monospace;">${s.signature.slice(0,16)}...</a>
+                    <span class="tx-time">${timeStr}</span>
+                </div>
+                <span style="color:${s.err ? 'var(--sol)' : 'var(--success)'}; font-size:10px; font-weight:700;">
+                    ${s.err ? '❌ FAILED' : '✅ SUCCESS'}
+                </span>`;
+            el.appendChild(row);
+        }
+    } catch(e) { 
+        console.error("History fetch error", e); 
+    }
+}
+
+async function refreshVaultUI() {
+    const d = await readVault();
+    vaultData = d;
+    
+    if (!d) return;
+
+    // 🔥 DYNAMICALLY UPDATE THE SUCCESS ALERT WITH REAL BLOCKCHAIN DATA
+    const uiLimitSol = Number(d.dailyLimitSol) / 1e9;
+    const uiLimitUsdc = Number(d.dailyLimitUsdc) / 1e6;
+    document.getElementById('vault-exists-alert').innerHTML =
+        `<strong>✓ Rules locked.</strong> ${uiLimitSol} SOL/day + ${uiLimitUsdc} USDC/day.`;
+
+    const nowSec   = BigInt(Math.floor(Date.now() / 1000));
+    const isActive = nowSec < d.expiryDate;
+
+    const dayLimitSec = 86400n;
+    const solSpent = (nowSec - d.lastWithdrawSol > dayLimitSec) ? 0n : d.withdrawnSol;
+    const solRem   = d.dailyLimitSol > solSpent ? d.dailyLimitSol - solSpent : 0n;
+    const solPct   = d.dailyLimitSol > 0n ? Number(solSpent * 100n / d.dailyLimitSol) : 0;
+
+    const usdcSpent = (nowSec - d.lastWithdrawUsdc > dayLimitSec) ? 0n : d.withdrawnUsdc;
+    const usdcRem   = d.dailyLimitUsdc > usdcSpent ? d.dailyLimitUsdc - usdcSpent : 0n;
+    const usdcPct   = d.dailyLimitUsdc > 0n ? Number(usdcSpent * 100n / d.dailyLimitUsdc) : 0;
+
+    let walletSolLam = 0n, walletUsdcMicro = 0n, vaultUsdcMicro = 0n;
+    try {
+        walletSolLam = BigInt(await connection.getBalance(walletPubkey));
+        
+        // Deep query wallet token account
+        const userTokenInfo = await detectTokenProgram(walletPubkey, getUsdcMint());
+        window._usdcTokenProg = userTokenInfo.program || SPL_TOKEN_PROG;
+        window._userUsdcATA = userTokenInfo.ata; 
+        walletUsdcMicro = userTokenInfo.balance;
+        
+        // Deep query the Vault PDA directly
+        const vaultTokenInfo = await detectTokenProgram(vaultPDA, getUsdcMint());
+        vaultUsdcMicro = vaultTokenInfo.balance;
+        
+    } catch(e) {
+        console.error("Refresh UI Error:", e);
+    }
+
+    document.getElementById('t1-sol').innerText  = solFmt(walletSolLam);
+    document.getElementById('t1-usdc').innerText = usdcFmt(walletUsdcMicro);
+
+    document.getElementById('pda-row').style.display = 'flex';
+    document.getElementById('pda-display').innerText = vaultPDA.toString().slice(0,6) + '...' + vaultPDA.toString().slice(-6);
+    
+    const cluster = currentNetwork === 'devnet' ? '?cluster=devnet' : '';
+    document.getElementById('pda-link').href = 'https://solscan.io/account/' + vaultPDA.toString() + cluster;
+
+    document.getElementById('vault-stats').style.display = 'grid';
+    document.getElementById('s-wsol').innerText  = solFmt(walletSolLam);
+    document.getElementById('s-vsol').innerText  = solFmt(d.balanceLamports);
+    document.getElementById('s-wusdc').innerText = usdcFmt(walletUsdcMicro);
+    document.getElementById('s-vusdc').innerText = usdcFmt(vaultUsdcMicro);
+
+    const pSol = document.getElementById('prog-sol');
+    pSol.style.width = Math.min(solPct, 100) + '%';
+    pSol.className = 'prog-bar' + (solPct >= 100 ? ' danger' : solPct >= 75 ? ' warn' : '');
+    document.getElementById('lbl-sol-spent').innerText = solFmt(solSpent) + ' spent';
+    document.getElementById('lbl-sol-rem').innerText   = solFmt(solRem) + ' left';
+
+    const pUsdc = document.getElementById('prog-usdc');
+    pUsdc.style.width = Math.min(usdcPct, 100) + '%';
+    pUsdc.className = 'prog-bar usdc' + (usdcPct >= 100 ? ' danger' : usdcPct >= 75 ? ' warn' : '');
+    document.getElementById('lbl-usdc-spent').innerText = usdcFmt(usdcSpent) + ' spent';
+    document.getElementById('lbl-usdc-rem').innerText   = usdcFmt(usdcRem) + ' left';
+
+    const expEl = document.getElementById('s-expiry');
+    if (isActive) {
+        const days = Math.ceil(Number(d.expiryDate - nowSec) / 86400);
+        expEl.innerText = '🔒 Active — ' + days + ' days left';
+        expEl.className = 'stat-value warn';
+    } else {
+        expEl.innerText = '✓ Expired — withdraw freely';
+        expEl.className = 'stat-value good';
+    }
+
+    document.getElementById('fund-hint').innerText = fundToken === 'sol'
+        ? 'Wallet: ' + solFmt(walletSolLam) + ' (reserve ~0.001 for fees)'
+        : 'Wallet: ' + usdcFmt(walletUsdcMicro);
+
+    updateWdHint(solRem, usdcRem, d.dailyLimitSol, d.dailyLimitUsdc, isActive);
+}
+
+async function refreshVaultUIThrottled(force = false) {
+    const now = Date.now();
+    if (!force && (now - lastRefreshAtMs) < REFRESH_COOLDOWN_MS) return;
+    if (refreshInFlight) return refreshInFlight;
+
+    refreshInFlight = (async () => {
+        try {
+            await refreshVaultUI();
+        } finally {
+            lastRefreshAtMs = Date.now();
+            refreshInFlight = null;
+        }
+    })();
+
+    return refreshInFlight;
+}
+
+function updateWdHint(solRem, usdcRem, solLimit, usdcLimit, isActive) {
+    const hint     = document.getElementById('withdraw-hint');
+    const warning = document.getElementById('withdraw-warning');
+    const amount  = Number(document.getElementById('withdraw-amount').value) || 0;
+
+    if (!isActive) {
+        hint.innerText = '✅ Enforcement expired — withdraw any amount.';
+        hint.className = 'hint good';
+        warning.style.display = 'none';
+        return;
+    }
+
+    if (wdToken === 'sol') {
+        const remSol   = Number(solRem) / 1e9;
+        const limitSol = Number(solLimit) / 1e9;
+        hint.innerText = `Limit: ${limitSol.toFixed(4)} SOL/day — Available: ${remSol.toFixed(4)} SOL`;
+        hint.className = 'hint';
+        if (amount > remSol) {
+            warning.style.display = 'block';
+            warning.innerHTML = `⛔ <strong>Will be rejected.</strong> Trying ${amount.toFixed(4)} SOL but only ${remSol.toFixed(4)} SOL available today.`;
+        } else { warning.style.display = 'none'; }
+    } else {
+        const remUsdc   = Number(usdcRem) / 1e6;
+        const limitUsdc = Number(usdcLimit) / 1e6;
+        hint.innerText = `Limit: ${limitUsdc.toFixed(2)} USDC/day — Available: ${remUsdc.toFixed(2)} USDC`;
+        hint.className = 'hint usdc';
+        if (amount > remUsdc) {
+            warning.style.display = 'block';
+            warning.innerHTML = `⛔ <strong>Will be rejected.</strong> Trying ${amount.toFixed(2)} USDC but only ${remUsdc.toFixed(2)} USDC available today.`;
+        } else { warning.style.display = 'none'; }
+    }
+}
+
+function setFundToken(t) {
+    fundToken = t;
+    document.getElementById('fund-tab-sol').className  = 'ttab' + (t === 'sol'  ? ' active-sol'  : '');
+    document.getElementById('fund-tab-usdc').className = 'ttab' + (t === 'usdc' ? ' active-usdc' : '');
+    document.getElementById('fund-amount-label').innerText = t === 'sol' ? 'Amount to Deposit (SOL)' : 'Amount to Deposit (USDC)';
+    document.getElementById('fund-amount').step  = t === 'sol' ? '0.1' : '1';
+    document.getElementById('fund-btn').innerText = t === 'sol' ? 'Deposit SOL into Vault' : 'Deposit USDC into Vault';
+    document.getElementById('fund-btn').className = t === 'sol' ? 'btn btn-ghost-good' : 'btn btn-ghost-usdc';
+    if (vaultData) refreshVaultUIThrottled();
+}
+
+function setWdToken(t) {
+    wdToken = t;
+    document.getElementById('wd-tab-sol').className  = 'ttab' + (t === 'sol'  ? ' active-sol'  : '');
+    document.getElementById('wd-tab-usdc').className = 'ttab' + (t === 'usdc' ? ' active-usdc' : '');
+    document.getElementById('wd-amount-label').innerText = t === 'sol' ? 'Amount to Withdraw (SOL)' : 'Amount to Withdraw (USDC)';
+    document.getElementById('withdraw-amount').step  = t === 'sol' ? '0.01' : '1';
+    document.getElementById('withdraw-btn').innerText = t === 'sol' ? 'Withdraw SOL' : 'Withdraw USDC';
+    document.getElementById('withdraw-btn').className = t === 'sol' ? 'btn btn-ghost-sol' : 'btn btn-ghost-usdc';
+    if (vaultData) refreshVaultUIThrottled();
+}
+
+document.getElementById('network').addEventListener('change', async () => {
+    currentNetwork = document.getElementById('network').value;
+    const isDevnet = currentNetwork === 'devnet';
+    connection = new Connection(isDevnet ? 'https://api.devnet.solana.com' : 'https://api.mainnet-beta.solana.com', 'confirmed');
+    clearRpcCaches();
+    document.getElementById('net-dot').className = 'net-dot' + (isDevnet ? '' : ' live');
+    document.getElementById('faucet-link').style.display = isDevnet && walletPubkey ? 'block' : 'none';
+    if (walletPubkey) await checkAndSetupVault();
+});
+
+const detectInterval = setInterval(() => {
+    const p = findProvider();
+    if (!p) return;
+    const lbl = p.isPhantom ? 'Connect Phantom' : 'Connect Wallet';
+    document.getElementById('connect-btn-top').innerText  = lbl;
+    document.getElementById('connect-btn-tile').innerText = lbl;
+}, 600);
+
+async function doConnect() {
+    try {
+        const provider = findProvider();
+        if (!provider) { setStatus('s1-status', 'No wallet found.', 'err'); return; }
+        setStatus('s1-status', 'Connecting...');
+        await provider.connect();
+        walletPubkey   = new PublicKey(provider.publicKey.toString());
+        walletProvider = provider;
+        clearInterval(detectInterval);
+
+        const shortKey = walletPubkey.toString().slice(0,4) + '...' + walletPubkey.toString().slice(-4);
+        let walSol = 0;
+        try { walSol = (await connection.getBalance(walletPubkey)) / 1e9; } catch(e) {}
+
+        document.getElementById('connect-btn-top').innerText = shortKey + ' (' + walSol.toFixed(3) + ' SOL)';
+        document.getElementById('connect-btn-top').classList.add('connected');
+        document.getElementById('connect-btn-top').disabled = true;
+        document.getElementById('connect-btn-tile').innerText = '✓ Connected';
+        document.getElementById('connect-btn-tile').className = 'btn btn-good';
+        document.getElementById('connect-btn-tile').disabled = true;
+        document.getElementById('t1-addr').innerText = walletPubkey.toString().slice(0,10) + '...' + walletPubkey.toString().slice(-6);
+        document.getElementById('t1-sol').innerText  = walSol.toFixed(4) + ' SOL';
+        document.getElementById('t1-info').style.display = 'grid';
+        if (currentNetwork === 'devnet') document.getElementById('faucet-link').style.display = 'block';
+        markDone('tile-1');
+        setStatus('s1-status', '');
+        await checkAndSetupVault();
+    } catch(e) {
+        console.error(e);
+        setStatus('s1-status', 'Rejected.', 'err');
+    }
+}
+document.getElementById('connect-btn-top').addEventListener('click', doConnect);
+document.getElementById('connect-btn-tile').addEventListener('click', doConnect);
+
+async function checkAndSetupVault() {
+    vaultPDA = await deriveVaultPDA();
+    const info = await connection.getAccountInfo(vaultPDA);
+    const exists = info !== null;
+
+    unlock('tile-2');
+    document.getElementById('init-btn').disabled = false;
+
+    if (exists) {
+        document.getElementById('vault-exists-alert').style.display = 'block';
+        document.getElementById('init-fields').style.display = 'none';
+        if (currentNetwork === 'devnet') document.getElementById('close-vault-btn').style.display = 'block';
+        markDone('tile-2');
+        unlock('tile-3'); unlock('tile-4'); unlock('tile-5'); 
+        unlock('tile-6'); // TILE 6 is now the History Tile
+        
+        document.getElementById('fund-btn').disabled     = false;
+        document.getElementById('withdraw-btn').disabled = false;
+        document.getElementById('refresh-btn').disabled  = false;
+        
+        await refreshVaultUIThrottled(true);
+        await fetchHistory(); 
+
+        if (wsSubscriptionId) connection.removeAccountChangeListener(wsSubscriptionId);
+        wsSubscriptionId = connection.onAccountChange(vaultPDA, (accountInfo) => {
+            console.log("WebSocket push: Vault state changed!");
+            refreshVaultUIThrottled();
+            fetchHistory();
+        }, 'confirmed');
+
+    } else {
+        document.getElementById('vault-exists-alert').style.display = 'none';
+        document.getElementById('init-fields').style.display = 'block';
+    }
+}
+
+document.getElementById('init-btn').addEventListener('click', async () => {
+    const rawSol  = Number(document.getElementById('limit-sol').value);
+    const rawUsdc = Number(document.getElementById('limit-usdc').value);
+    const daysVal = Number(document.getElementById('days').value);
+    if (!rawSol || !rawUsdc || !daysVal) { setStatus('s2-status', 'Fill all fields.', 'err'); return; }
+    try {
+        setStatus('s2-status', 'Building transaction...');
+        const limSol  = Math.round(rawSol  * 1e9);
+        const limUsdc = Math.round(rawUsdc * 1e6);
+        const usdcMintPk = new PublicKey(getUsdcMint());
+        const vaultATA = await deriveATA(vaultPDA, getUsdcMint(), SPL_TOKEN_PROG);
+        const d = await disc('initialize_vault');
+        const data = new Uint8Array(32);
+        data.set(d, 0);
+        data.set(encodeU64(limSol),  8);
+        data.set(encodeU64(limUsdc), 16);
+        data.set(encodeI64(daysVal), 24);
+        const ix = new TransactionInstruction({
+            programId: new PublicKey(PROGRAM_ID_STR),
+            keys: [
+                { pubkey: vaultPDA,                 isSigner: false, isWritable: true  },
+                { pubkey: usdcMintPk,               isSigner: false, isWritable: false },
+                { pubkey: vaultATA,                 isSigner: false, isWritable: true  },
+                { pubkey: walletPubkey,            isSigner: true,  isWritable: true  },
+                { pubkey: new PublicKey(SPL_TOKEN_PROG), isSigner: false, isWritable: false },
+                { pubkey: new PublicKey(ATA_PROGRAM),    isSigner: false, isWritable: false },
+                { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+            ],
+            data,
+        });
+        await sendAndConfirm('s2-status', ix);
+        setStatus('s2-status', '✓ Rules burned!', 'ok');
+        
+        // 🔥 Wait for RPC to catch up to the new rules!
+        await new Promise(r => setTimeout(r, 3000));
+        await checkAndSetupVault(); 
+        
+    } catch(err) {
+        console.error(err);
+        setStatus('s2-status', 'Failed: ' + (err?.message || err), 'err');
+    }
+});
+
+document.getElementById('fund-btn').addEventListener('click', async () => {
+    const amount = Number(document.getElementById('fund-amount').value);
+    if (!amount || amount <= 0) { setStatus('s4-status', 'Enter a valid amount.', 'err'); return; }
+    try {
+        if (fundToken === 'sol') {
+            setStatus('s4-status', 'Building SOL deposit...');
+            const lamports = Math.round(amount * 1e9);
+            const transferData = new Uint8Array(12);
+            transferData[0] = 2;
+            let lam = BigInt(lamports);
+            for (let i = 0; i < 8; i++) { transferData[4+i] = Number(lam & 0xffn); lam >>= 8n; }
+            const ix = new TransactionInstruction({
+                programId: SystemProgram.programId,
+                keys: [
+                    { pubkey: walletPubkey, isSigner: true,  isWritable: true },
+                    { pubkey: vaultPDA,     isSigner: false, isWritable: true },
+                ],
+                data: transferData,
+            });
+            await sendAndConfirm('s4-status', ix);
+            setStatus('s4-status', '✓ Deposited ' + amount + ' SOL', 'ok');
+            
+            await new Promise(r => setTimeout(r, 2500)); 
+            clearRpcCaches();
+            await refreshVaultUIThrottled(true);
+            await fetchHistory();
+            
+        } else {
+            setStatus('s4-status', 'Verifying USDC accounts...');
+            const microUsdc    = Math.round(amount * 1e6);
+            const usdcProgStr  = window._usdcTokenProg || SPL_TOKEN_PROG;
+            const tokenProgram = new PublicKey(usdcProgStr);
+            
+            const userATA      = window._userUsdcATA || await deriveATA(walletPubkey, getUsdcMint(), usdcProgStr);
+            const vaultATA     = await deriveATA(vaultPDA, getUsdcMint(), usdcProgStr);
+
+            const userATAInfo = await connection.getAccountInfo(userATA);
+            if (!userATAInfo) {
+                setStatus('s4-status', '⛔ No Devnet USDC found in your wallet!', 'err');
+                return;
+            }
+
+            const instructions = [];
+            
+            const vaultATAInfo = await connection.getAccountInfo(vaultATA);
+            if (!vaultATAInfo) {
+                console.log("Vault ATA missing, adding creation instruction...");
+                instructions.push(createATAInstruction(walletPubkey, vaultATA, vaultPDA, new PublicKey(getUsdcMint()), usdcProgStr));
+            }
+
+            const transferData = new Uint8Array(9);
+            transferData[0] = 3; 
+            let amt = BigInt(microUsdc);
+            for (let i = 0; i < 8; i++) { transferData[1+i] = Number(amt & 0xffn); amt >>= 8n; }
+            instructions.push(new TransactionInstruction({
+                programId: tokenProgram,
+                keys: [
+                    { pubkey: userATA,      isSigner: false, isWritable: true  },
+                    { pubkey: vaultATA,     isSigner: false, isWritable: true  },
+                    { pubkey: walletPubkey, isSigner: true,  isWritable: false },
+                ],
+                data: transferData,
+            }));
+            
+            setStatus('s4-status', 'Sending USDC transaction...');
+            await sendAndConfirm('s4-status', ...instructions);
+            setStatus('s4-status', '✓ Deposited ' + amount + ' USDC', 'ok');
+            
+            await new Promise(r => setTimeout(r, 2500));
+            clearRpcCaches();
+            await refreshVaultUIThrottled(true);
+            await fetchHistory();
+        }
+    } catch(err) {
+        console.error("Fund Button Error:", err);
+        setStatus('s4-status', 'Failed. Check "Recent Transactions" log 📜', 'err');
+    }
+});
+
+function createATAInstruction(payer, ata, owner, mint, tokenProg = SPL_TOKEN_PROG) {
+    return new TransactionInstruction({
+        programId: new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bS8"),
+        keys: [
+            { pubkey: payer,                                                       isSigner: true,  isWritable: true  },
+            { pubkey: ata,                                                         isSigner: false, isWritable: true  },
+            { pubkey: owner,                                                       isSigner: false, isWritable: false },
+            { pubkey: mint,                                                        isSigner: false, isWritable: false },
+            { pubkey: new PublicKey("11111111111111111111111111111111"),           isSigner: false, isWritable: false }, 
+            { pubkey: new PublicKey(tokenProg),                                    isSigner: false, isWritable: false }, 
+        ],
+        data: new Uint8Array([]), 
+    });
+}
+
+document.getElementById('refresh-btn').addEventListener('click', async () => {
+    setStatus('s3-status', 'Refreshing...');
+    await refreshVaultUIThrottled(true);
+    await fetchHistory();
+    setStatus('s3-status', '✓ Updated', 'ok');
+});
+
+document.getElementById('withdraw-btn').addEventListener('click', async () => {
+    const amount = Number(document.getElementById('withdraw-amount').value);
+    if (!amount || amount <= 0) { setStatus('s5-status', 'Enter a valid amount.', 'err'); return; }
+    try {
+        if (wdToken === 'sol') {
+            setStatus('s5-status', 'Building SOL withdrawal...');
+            const lamports = Math.round(amount * 1e9);
+            const d = await disc('withdraw_sol');
+            const data = new Uint8Array(16);
+            data.set(d, 0); data.set(encodeU64(lamports), 8);
+            const ix = new TransactionInstruction({
+                programId: new PublicKey(PROGRAM_ID_STR),
+                keys: [
+                    { pubkey: vaultPDA,               isSigner: false, isWritable: true },
+                    { pubkey: walletPubkey,            isSigner: true,  isWritable: true },
+                    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+                ],
+                data,
+            });
+            await sendAndConfirm('s5-status', ix);
+            setStatus('s5-status', '✓ Withdrawn ' + amount + ' SOL', 'ok');
+            
+            await new Promise(r => setTimeout(r, 2500));
+            clearRpcCaches();
+            await refreshVaultUIThrottled(true);
+            await fetchHistory();
+            
+        } else {
+            setStatus('s5-status', 'Building USDC withdrawal...');
+            const microUsdc    = Math.round(amount * 1e6);
+            const usdcProgStr2 = window._usdcTokenProg || SPL_TOKEN_PROG;
+            const usdcMintPk   = new PublicKey(getUsdcMint());
+            const vaultATA     = await deriveATA(vaultPDA, getUsdcMint(), usdcProgStr2);
+            
+            const userATA      = window._userUsdcATA || await deriveATA(walletPubkey, getUsdcMint(), usdcProgStr2);
+            
+            const tokenProgram = new PublicKey(usdcProgStr2);
+            const d = await disc('withdraw_usdc');
+            const data = new Uint8Array(16);
+            data.set(d, 0); data.set(encodeU64(microUsdc), 8);
+            const ix = new TransactionInstruction({
+                programId: new PublicKey(PROGRAM_ID_STR),
+                keys: [
+                    { pubkey: vaultPDA,    isSigner: false, isWritable: true  },
+                    { pubkey: usdcMintPk,  isSigner: false, isWritable: false },
+                    { pubkey: vaultATA,    isSigner: false, isWritable: true  },
+                    { pubkey: userATA,     isSigner: false, isWritable: true  },
+                    { pubkey: walletPubkey,isSigner: true,  isWritable: true  },
+                    { pubkey: tokenProgram,isSigner: false, isWritable: false },
+                ],
+                data,
+            });
+            await sendAndConfirm('s5-status', ix);
+            setStatus('s5-status', '✓ Withdrawn ' + amount + ' USDC', 'ok');
+            
+            await new Promise(r => setTimeout(r, 2500));
+            clearRpcCaches();
+            await refreshVaultUIThrottled(true);
+            await fetchHistory();
+        }
+    } catch(err) {
+        console.error(err);
+        const msg = err?.message || String(err);
+        if (msg.includes('0x1770') || msg.includes('6000') || msg.includes('SolLimit')) {
+            setStatus('s5-status', '⛔ Rejected — SOL daily limit exceeded.', 'err');
+        } else if (msg.includes('0x1771') || msg.includes('6001') || msg.includes('UsdcLimit')) {
+            setStatus('s5-status', '⛔ Rejected — USDC daily limit exceeded.', 'err');
+        } else {
+            setStatus('s5-status', 'Failed: ' + msg, 'err');
+        }
+    }
+});
+
+document.getElementById('withdraw-amount').addEventListener('input', () => {
+    if (!vaultData) return;
+    const nowSec = BigInt(Math.floor(Date.now() / 1000));
+    const isActive = nowSec < vaultData.expiryDate;
+    const dayLimitSec = 86400n;
+    const solSpent  = (nowSec - vaultData.lastWithdrawSol  > dayLimitSec) ? 0n : vaultData.withdrawnSol;
+    const usdcSpent = (nowSec - vaultData.lastWithdrawUsdc > dayLimitSec) ? 0n : vaultData.withdrawnUsdc;
+    const solRem  = vaultData.dailyLimitSol  > solSpent  ? vaultData.dailyLimitSol  - solSpent  : 0n;
+    const usdcRem = vaultData.dailyLimitUsdc > usdcSpent ? vaultData.dailyLimitUsdc - usdcSpent : 0n;
+    updateWdHint(solRem, usdcRem, vaultData.dailyLimitSol, vaultData.dailyLimitUsdc, isActive);
+});
+
+document.getElementById('close-vault-btn').addEventListener('click', async () => {
+    if (currentNetwork !== 'devnet') return;
+    if (!confirm('Reset vault? DEVNET ONLY.')) return;
+    try {
+        setStatus('s2-status', 'Resetting...');
+        const vaultTokenInfo = await detectTokenProgram(vaultPDA, getUsdcMint());
+        const usdcProgStr = vaultTokenInfo.program || SPL_TOKEN_PROG;
+        const usdcMintPk = new PublicKey(getUsdcMint());
+        const vaultATA = await deriveATA(vaultPDA, getUsdcMint(), usdcProgStr);
+        let d = await disc('reset_vault_devnet');
+        let ix = new TransactionInstruction({
+            programId: new PublicKey(PROGRAM_ID_STR),
+            keys: [
+                { pubkey: vaultPDA,     isSigner: false, isWritable: true },
+                { pubkey: usdcMintPk,   isSigner: false, isWritable: false },
+                { pubkey: vaultATA,     isSigner: false, isWritable: true },
+                { pubkey: walletPubkey, isSigner: true,  isWritable: true },
+                { pubkey: new PublicKey(usdcProgStr), isSigner: false, isWritable: false },
+            ],
+            data: d,
+        });
+        try {
+            await sendAndConfirm('s2-status', ix);
+        } catch (_) {
+            d = await disc('close_vault');
+            ix = new TransactionInstruction({
+                programId: new PublicKey(PROGRAM_ID_STR),
+                keys: [
+                    { pubkey: vaultPDA,     isSigner: false, isWritable: true },
+                    { pubkey: usdcMintPk,   isSigner: false, isWritable: false },
+                    { pubkey: vaultATA,     isSigner: false, isWritable: true },
+                    { pubkey: walletPubkey, isSigner: true,  isWritable: true },
+                    { pubkey: new PublicKey(usdcProgStr), isSigner: false, isWritable: false },
+                ],
+                data: d,
+            });
+            await sendAndConfirm('s2-status', ix);
+        }
+        setStatus('s2-status', '✓ Vault reset.', 'ok');
+        
+        // 🔥 Wait for RPC to catch up before fetching old data!
+        await new Promise(r => setTimeout(r, 3000));
+
+        if (wsSubscriptionId) connection.removeAccountChangeListener(wsSubscriptionId);
+        wsSubscriptionId = null;
+        
+        // Clean out the old input boxes completely
+        document.getElementById('limit-sol').value = '';
+        document.getElementById('limit-usdc').value = '';
+        document.getElementById('fund-amount').value = '';
+        document.getElementById('withdraw-amount').value = '';
+
+        document.getElementById('vault-exists-alert').style.display = 'none';
+        document.getElementById('init-fields').style.display = 'block';
+        document.getElementById('close-vault-btn').style.display = 'none';
+        document.getElementById('vault-stats').style.display = 'none';
+        document.getElementById('pda-row').style.display = 'none';
+        document.getElementById('tile-2').classList.remove('done');
+        document.getElementById('tile-2').classList.add('active');
+        ['tile-3','tile-4','tile-5','tile-6'].forEach(id => {
+            document.getElementById(id).classList.remove('active');
+            document.getElementById(id).classList.add('locked');
+        });
+        vaultData = null;
+    } catch(err) {
+        console.error(err);
+        setStatus('s2-status', 'Failed: ' + (err?.message || err), 'err');
+    }
+});
+</script>
+</body>
+</html>
