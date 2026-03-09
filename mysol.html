@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v5.0</title>
+    <title>MySOL | Spending Vault v5.1</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -159,7 +159,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v5.0</h1>
+            <h1>MySOL Vault v5.1</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -281,8 +281,6 @@
                         <div class="stat-value usdc" id="s-vusdc">—</div>
                     </div>
                 </div>
-                <button class="btn btn-ghost" id="refresh-btn" disabled>💰 Sync Vault</button>
-                <div class="status-bar" id="s3-status"></div>
             </div>
         </div>
 
@@ -342,7 +340,7 @@
     </div>
 
     <div class="footer">
-        MySOL Vault v5.0 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
+        MySOL Vault v5.1 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
     <div class="disclaimer">Disclaimer: Use MySOL Vault at your own risk. Developer(s) not liable for lost funds. Withdraw and depositing to the vault requires using this page and the original connected wallet. One vault per wallet.</div>
@@ -468,7 +466,7 @@ function setStatus(id, msg, cls='') {
     el.className = 'status-bar' + (cls ? ' '+cls : '');
 
     // Fade out transient success notices for deposit/withdraw actions.
-    if ((id === 's3-status' || id === 's4-status' || id === 's5-status') && cls === 'ok' && msg) {
+    if ((id === 's4-status' || id === 's5-status') && cls === 'ok' && msg) {
         const timer = setTimeout(() => {
             el.style.transition = 'opacity 0.8s ease';
             el.style.opacity = '0';
@@ -1114,8 +1112,6 @@ async function checkAndSetupVault() {
         
         document.getElementById('fund-btn').disabled     = false;
         document.getElementById('withdraw-btn').disabled = false;
-        document.getElementById('refresh-btn').disabled  = false;
-        
         await refreshVaultUIThrottled(true);
         await fetchHistory(); 
 
@@ -1269,13 +1265,6 @@ function createATAInstruction(payer, ata, owner, mint, tokenProg = SPL_TOKEN_PRO
         data: new Uint8Array([]), 
     });
 }
-
-document.getElementById('refresh-btn').addEventListener('click', async () => {
-    setStatus('s3-status', 'Refreshing...');
-    await refreshVaultUIThrottled(true);
-    await fetchHistory();
-    setStatus('s3-status', '✓ Updated', 'ok');
-});
 
 document.getElementById('withdraw-btn').addEventListener('click', async () => {
     const amount = Number(document.getElementById('withdraw-amount').value);
