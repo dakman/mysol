@@ -564,7 +564,7 @@ async function readVault() {
     if (!info) return null;
     const raw = new Uint8Array(info.data);
     
-    if (raw.length < 96) {
+    if (raw.length < 128) {
         return null;
     } 
 
@@ -578,6 +578,7 @@ async function readVault() {
         withdrawnSol:       decodeU64(view, 72),
         withdrawnUsdc:      decodeU64(view, 80),
         expiryDate:         decodeI64(view, 88), 
+        usdcMint:           new PublicKey(raw.slice(96, 128)).toString(),
         balanceLamports:    BigInt(info.lamports),
     };
 }
