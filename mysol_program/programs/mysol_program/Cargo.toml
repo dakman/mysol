@@ -23,6 +23,7 @@ devnet-reset = []
 [dependencies]
 anchor-lang = "0.32.1"
 anchor-spl  = { version = "0.32.1", features = ["token", "token_2022"] }
-
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
+spl-associated-token-account = "1.0.4"
+rand = "0.8"
+solana-program = "2.3.0"
+solana-pubkey = "2.3.0"

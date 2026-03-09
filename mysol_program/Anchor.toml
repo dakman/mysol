@@ -11,6 +11,7 @@ mysol_program ="Ed3m1fhxygWysgyLSLryp3haQNcvMri8MkrqGvNDw4bt"
 
 [programs.devnet]
 mysol_program = "Ed3m1fhxygWysgyLSLryp3haQNcvMri8MkrqGvNDw4bt"
+associated_token_program = "ATokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 
 [registry]
 url = "https://api.apr.dev"
