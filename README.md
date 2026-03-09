@@ -56,6 +56,13 @@ Unlike systems that reset at a fixed time, MySOL Vault uses a **Relative Rolling
 * On the next attempt, the program checks if `> 86,400 seconds` (24 hours) have passed since the *last* withdrawal.
 * If yes, your "Spent Today" counter resets, allowing for a new withdrawal.
 
+### 1b. Adjustable Enforcement Unit (Days or Minutes)
+Vault creation supports an adjustable enforcement interval unit:
+* **Days (`0`)**: default mode for normal usage.
+* **Minutes (`1`)**: testing mode for rapid validation (for example, a 1-minute expiry on devnet).
+
+This changes how `expiry_date` is computed during `initialize_vault`.
+
 ### 2. Logic Gatekeepers
 * **`initialize_vault`**: Writes the rules. Once set, the `expiry_date` is a hard-coded deadline.
 * **`withdraw_sol` / `withdraw_usdc`**: Enforce daily limits on-chain. Over-limit transactions fail at runtime even from custom frontends.
