@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v3.9</title>
+    <title>MySOL | Spending Vault v4.0</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -29,6 +29,10 @@
         .topbar h1 { font-size: 15px; font-weight: 800; color: #fff; }
         .topbar .sub { font-size: 10px; color: #aaa; margin-top: 1px; }
         .topbar-right { display: flex; align-items: center; gap: 12px; }
+        .limit-group { display: flex; align-items: center; gap: 8px; }
+        .limit-chip { width: 150px; border: 1px solid var(--border); border-radius: 8px; padding: 5px 7px; background: #000; }
+        .limit-chip-label { font-size: 9px; color: #aaa; text-transform: uppercase; margin-bottom: 3px; font-weight: 700; }
+        .limit-chip-text { font-size: 9px; color: #ddd; margin-top: 3px; display: flex; justify-content: space-between; }
         .net-pill { display: flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 20px; background: #000; border: 1px solid var(--border); font-size: 10px; color: #ccc; }
         .net-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--warn); flex-shrink: 0; }
         .net-dot.live { background: var(--success); }
@@ -138,6 +142,9 @@
         @media (max-width: 768px) {
             .topbar { padding: 12px 14px; }
             .topbar .sub { display: none; }
+            .topbar-right { gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+            .limit-group { width: 100%; justify-content: flex-end; }
+            .limit-chip { width: 120px; }
             .grid { grid-template-columns: 1fr; background: var(--bg); gap: 0; }
             .tile { padding: 14px; border-bottom: 1px solid var(--border); }
         }
@@ -148,12 +155,30 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v3.9</h1>
+            <h1>MySOL Vault v4.0</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
             <a id="open-getting-started" class="top-link">Getting Started</a>
             <a id="open-modal" class="top-link">How It Works</a>
+            <div id="limit-group" class="limit-group" style="display:none;">
+                <div class="limit-chip">
+                    <div class="limit-chip-label">Daily SOL Limit</div>
+                    <div class="prog-wrap" style="margin-top:0;"><div class="prog-bar" id="hdr-prog-sol" style="width:0%"></div></div>
+                    <div class="limit-chip-text">
+                        <span id="hdr-sol-spent">—</span>
+                        <span id="hdr-sol-rem">—</span>
+                    </div>
+                </div>
+                <div class="limit-chip">
+                    <div class="limit-chip-label">Daily USDC Limit</div>
+                    <div class="prog-wrap" style="margin-top:0;"><div class="prog-bar usdc" id="hdr-prog-usdc" style="width:0%"></div></div>
+                    <div class="limit-chip-text">
+                        <span id="hdr-usdc-spent">—</span>
+                        <span id="hdr-usdc-rem">—</span>
+                    </div>
+                </div>
+            </div>
             <div class="net-pill">
                 <span class="net-dot" id="net-dot"></span>
                 <select id="network">
@@ -251,22 +276,6 @@
                         <div class="stat-value usdc" id="s-vusdc">—</div>
                     </div>
                     <div class="stat wide">
-                        <div class="stat-label">SOL Daily Usage</div>
-                        <div class="prog-wrap"><div class="prog-bar" id="prog-sol" style="width:0%"></div></div>
-                        <div style="display:flex;justify-content:space-between;margin-top:3px;">
-                            <span style="font-size:9px;color:#aaa;" id="lbl-sol-spent">—</span>
-                            <span style="font-size:9px;color:#aaa;" id="lbl-sol-rem">—</span>
-                        </div>
-                    </div>
-                    <div class="stat wide">
-                        <div class="stat-label">USDC Daily Usage</div>
-                        <div class="prog-wrap"><div class="prog-bar usdc" id="prog-usdc" style="width:0%"></div></div>
-                        <div style="display:flex;justify-content:space-between;margin-top:3px;">
-                            <span style="font-size:9px;color:#aaa;" id="lbl-usdc-spent">—</span>
-                            <span style="font-size:9px;color:#aaa;" id="lbl-usdc-rem">—</span>
-                        </div>
-                    </div>
-                    <div class="stat wide">
                         <div class="stat-label">Enforcement</div>
                         <div class="stat-value" id="s-expiry" style="font-size:11px;">—</div>
                     </div>
@@ -331,7 +340,7 @@
 
     </div>
 
-    <div class="footer">MySOL Vault v3.9 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU</div>
+    <div class="footer">MySOL Vault v4.0 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU</div>
 </div>
 
 <div id="getting-started-modal" class="modal-overlay">
@@ -351,7 +360,7 @@
             <br/>Select <b>Devnet</b>, paste your wallet address, and request SOL.
         </div>
         <div class="info-row"><b>Devnet USDC:</b> Use
-            <a href="https://spl-token-faucet.com/?token-name=USDC" target="_blank" style="color:#fff; text-decoration:underline;">spl-token-faucet.com</a>.
+            <a href="https://faucet.circle.com/" target="_blank" style="color:#fff; text-decoration:underline;">faucet.circle.com</a>.
             <br/>Set network to <b>Devnet</b>, choose <b>USDC</b>, paste your wallet address, then mint test tokens.
         </div>
         <div class="info-row"><b>4.</b> Set daily limits + enforcement days, then click <b>Sign &amp; Burn Rules</b>.</div>
@@ -762,17 +771,17 @@ async function refreshVaultUI() {
     document.getElementById('s-wusdc').innerText = usdcFmt(walletUsdcMicro);
     document.getElementById('s-vusdc').innerText = usdcFmt(vaultUsdcMicro);
 
-    const pSol = document.getElementById('prog-sol');
+    const pSol = document.getElementById('hdr-prog-sol');
     pSol.style.width = Math.min(solPct, 100) + '%';
     pSol.className = 'prog-bar' + (solPct >= 100 ? ' danger' : solPct >= 75 ? ' warn' : '');
-    document.getElementById('lbl-sol-spent').innerText = solFmt(solSpent) + ' spent';
-    document.getElementById('lbl-sol-rem').innerText   = solFmt(solRem) + ' left';
+    document.getElementById('hdr-sol-spent').innerText = solFmt(solSpent) + ' spent';
+    document.getElementById('hdr-sol-rem').innerText   = solFmt(solRem) + ' left';
 
-    const pUsdc = document.getElementById('prog-usdc');
+    const pUsdc = document.getElementById('hdr-prog-usdc');
     pUsdc.style.width = Math.min(usdcPct, 100) + '%';
     pUsdc.className = 'prog-bar usdc' + (usdcPct >= 100 ? ' danger' : usdcPct >= 75 ? ' warn' : '');
-    document.getElementById('lbl-usdc-spent').innerText = usdcFmt(usdcSpent) + ' spent';
-    document.getElementById('lbl-usdc-rem').innerText   = usdcFmt(usdcRem) + ' left';
+    document.getElementById('hdr-usdc-spent').innerText = usdcFmt(usdcSpent) + ' spent';
+    document.getElementById('hdr-usdc-rem').innerText   = usdcFmt(usdcRem) + ' left';
 
     const expEl = document.getElementById('s-expiry');
     if (isActive) {
@@ -927,6 +936,7 @@ async function checkAndSetupVault() {
     document.getElementById('init-btn').disabled = false;
 
     if (exists) {
+        document.getElementById('limit-group').style.display = 'flex';
         document.getElementById('vault-exists-alert').style.display = 'block';
         document.getElementById('init-fields').style.display = 'none';
         if (currentNetwork === 'devnet') document.getElementById('close-vault-btn').style.display = 'block';
@@ -949,6 +959,7 @@ async function checkAndSetupVault() {
         }, 'confirmed');
 
     } else {
+        document.getElementById('limit-group').style.display = 'none';
         document.getElementById('vault-exists-alert').style.display = 'none';
         document.getElementById('init-fields').style.display = 'block';
     }
@@ -1364,6 +1375,7 @@ document.getElementById('close-vault-btn').addEventListener('click', async () =>
         document.getElementById('close-vault-btn').style.display = 'none';
         document.getElementById('vault-stats').style.display = 'none';
         document.getElementById('pda-row').style.display = 'none';
+        document.getElementById('limit-group').style.display = 'none';
         document.getElementById('tile-2').classList.remove('done');
         document.getElementById('tile-2').classList.add('active');
         ['tile-3','tile-4','tile-5','tile-6'].forEach(id => {
