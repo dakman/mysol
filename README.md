@@ -109,8 +109,8 @@ Unlike systems that reset at a fixed time, MySOL Vault uses a **Relative Rolling
 
 ## ⚠️ Disclaimer
 
-Use MySOL Vault at your own risk. Developer(s) not liable for lost funds.  
-Withdraw and depositing to the vault requires using this page and the original connected wallet.  
+Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds.  
+Vault withdrawals/deposits require valid on-chain instructions signed by the original vault owner wallet; this can be done via this app or other compatible Solana clients.  
 One vault per wallet.
 
 ---
