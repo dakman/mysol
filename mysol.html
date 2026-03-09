@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v4.5</title>
+    <title>MySOL | Spending Vault v4.6</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -158,7 +158,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v4.5</h1>
+            <h1>MySOL Vault v4.6</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -341,7 +341,7 @@
     </div>
 
     <div class="footer">
-        MySOL Vault v4.5 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
+        MySOL Vault v4.6 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -702,8 +702,8 @@ async function fetchHistory() {
             row.className = 'pda-row';
             const clusterStr = currentNetwork === 'devnet' ? '?cluster=devnet' : '';
             const link = `https://solscan.io/tx/${s.signature}${clusterStr}`;
-            let actionLabel = 'Unknown';
-            let amountLabel = 'N/A';
+            let actionLabel = 'Vault Activity';
+            let amountLabel = 'Amount unavailable';
             
             let timeStr = "Unknown time";
             if (s.blockTime) {
@@ -799,6 +799,62 @@ async function fetchHistory() {
                             }
                         }
                     }
+                }
+
+                // Fallback inference from balance deltas if instruction parsing didn't set a concrete amount.
+                if (!amountLabel || amountLabel === 'Amount unavailable') {
+                    const msgKeys = tx?.transaction?.message?.accountKeys || [];
+                    const keyStrs = msgKeys.map(k => (typeof k === 'string' ? k : (k?.pubkey?.toBase58?.() || k?.toBase58?.() || '')));
+                    const vaultIdx = keyStrs.findIndex(k => k === vaultPDA.toBase58());
+                    const meta = tx?.meta;
+                    if (vaultIdx >= 0 && meta?.preBalances && meta?.postBalances) {
+                        const pre = BigInt(meta.preBalances[vaultIdx] || 0);
+                        const post = BigInt(meta.postBalances[vaultIdx] || 0);
+                        const delta = post - pre;
+                        if (delta > 0n) {
+                            actionLabel = 'Deposit to Vault (SOL)';
+                            amountLabel = solFmt(delta);
+                        } else if (delta < 0n) {
+                            actionLabel = 'Withdraw from Vault (SOL)';
+                            amountLabel = solFmt(-delta);
+                        }
+                    }
+                }
+
+                if (!amountLabel || amountLabel === 'Amount unavailable') {
+                    const meta = tx?.meta;
+                    const mint = getUsdcMint();
+                    const preTok = meta?.preTokenBalances || [];
+                    const postTok = meta?.postTokenBalances || [];
+                    const findAmt = (arr) => {
+                        for (const b of arr) {
+                            if (b?.mint === mint && b?.owner === vaultPDA.toBase58()) {
+                                return BigInt(b?.uiTokenAmount?.amount || '0');
+                            }
+                        }
+                        return 0n;
+                    };
+                    const preAmt = findAmt(preTok);
+                    const postAmt = findAmt(postTok);
+                    const delta = postAmt - preAmt;
+                    if (delta > 0n) {
+                        actionLabel = 'Deposit to Vault (USDC)';
+                        amountLabel = usdcFmt(delta);
+                    } else if (delta < 0n) {
+                        actionLabel = 'Withdraw from Vault (USDC)';
+                        amountLabel = usdcFmt(-delta);
+                    }
+                }
+
+                // Final fallback from log messages to avoid "Unknown".
+                if (!actionLabel || actionLabel === 'Vault Activity') {
+                    const logs = (tx?.meta?.logMessages || []).join(' ').toLowerCase();
+                    if (logs.includes('instruction: initialize')) actionLabel = 'Initialize Vault';
+                    else if (logs.includes('instruction: withdrawsol')) actionLabel = 'Withdraw from Vault (SOL)';
+                    else if (logs.includes('instruction: withdrawusdc')) actionLabel = 'Withdraw from Vault (USDC)';
+                    else if (logs.includes('instruction: resetvaultdevnet')) actionLabel = 'Reset Vault';
+                    else if (logs.includes('instruction: closevault')) actionLabel = 'Close Vault';
+                    else if (logs.includes('instruction: endenforcementdevnet')) actionLabel = 'End Enforcement';
                 }
             } catch (_) {}
 
