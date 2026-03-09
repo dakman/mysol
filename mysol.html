@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v4.3</title>
+    <title>MySOL | Spending Vault v4.4</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -158,7 +158,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v4.3</h1>
+            <h1>MySOL Vault v4.4</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -341,7 +341,7 @@
     </div>
 
     <div class="footer">
-        MySOL Vault v4.3 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
+        MySOL Vault v4.4 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -688,8 +688,12 @@ async function fetchHistory() {
         }
         
         const toHex = (u8) => Array.from(u8).map(b => b.toString(16).padStart(2, '0')).join('');
+        const dInitializeHex = toHex(await disc('initialize_vault'));
         const dWithdrawSolHex = toHex(await disc('withdraw_sol'));
         const dWithdrawUsdcHex = toHex(await disc('withdraw_usdc'));
+        const dCloseHex = toHex(await disc('close_vault'));
+        const dResetHex = toHex(await disc('reset_vault_devnet'));
+        const dEndHex = toHex(await disc('end_enforcement_devnet'));
         const vaultAtaStd = (await deriveATA(vaultPDA, getUsdcMint(), SPL_TOKEN)).toBase58();
         const vaultAta2022 = (await deriveATA(vaultPDA, getUsdcMint(), SPL_TOKEN2022)).toBase58();
 
@@ -698,7 +702,8 @@ async function fetchHistory() {
             row.className = 'pda-row';
             const clusterStr = currentNetwork === 'devnet' ? '?cluster=devnet' : '';
             const link = `https://solscan.io/tx/${s.signature}${clusterStr}`;
-            let amountLabel = '—';
+            let actionLabel = 'Unknown';
+            let amountLabel = 'N/A';
             
             let timeStr = "Unknown time";
             if (s.blockTime) {
@@ -723,7 +728,13 @@ async function fetchHistory() {
                     if (parsed?.type === 'transfer' && parsed?.info?.lamports != null) {
                         const info = parsed.info;
                         if (info.destination === vaultPDA.toBase58()) {
+                            actionLabel = 'Deposit SOL';
                             amountLabel = `Deposit ${solFmt(BigInt(info.lamports))}`;
+                            break;
+                        }
+                        if (info.source === vaultPDA.toBase58()) {
+                            actionLabel = 'Withdraw SOL';
+                            amountLabel = `Withdraw ${solFmt(BigInt(info.lamports))}`;
                             break;
                         }
                     }
@@ -738,10 +749,12 @@ async function fetchHistory() {
                         const dst = info.destination;
                         const amt = BigInt(info.amount);
                         if (dst === vaultAtaStd || dst === vaultAta2022) {
+                            actionLabel = 'Deposit USDC';
                             amountLabel = `Deposit ${usdcFmt(amt)}`;
                             break;
                         }
                         if (src === vaultAtaStd || src === vaultAta2022) {
+                            actionLabel = 'Withdraw USDC';
                             amountLabel = `Withdraw ${usdcFmt(amt)}`;
                             break;
                         }
@@ -754,12 +767,34 @@ async function fetchHistory() {
                             const dHex = toHex(raw.slice(0, 8));
                             let amt = 0n;
                             for (let i = 0; i < 8; i++) amt |= BigInt(raw[8 + i]) << BigInt(i * 8);
+                            if (dHex === dInitializeHex) {
+                                actionLabel = 'Initialize Vault';
+                                amountLabel = 'N/A';
+                                break;
+                            }
                             if (dHex === dWithdrawSolHex) {
+                                actionLabel = 'Withdraw SOL';
                                 amountLabel = `Withdraw ${solFmt(amt)}`;
                                 break;
                             }
                             if (dHex === dWithdrawUsdcHex) {
+                                actionLabel = 'Withdraw USDC';
                                 amountLabel = `Withdraw ${usdcFmt(amt)}`;
+                                break;
+                            }
+                            if (dHex === dCloseHex) {
+                                actionLabel = 'Close Vault';
+                                amountLabel = 'N/A';
+                                break;
+                            }
+                            if (dHex === dResetHex) {
+                                actionLabel = 'Reset Vault';
+                                amountLabel = 'N/A';
+                                break;
+                            }
+                            if (dHex === dEndHex) {
+                                actionLabel = 'End Enforcement';
+                                amountLabel = 'N/A';
                                 break;
                             }
                         }
@@ -773,7 +808,7 @@ async function fetchHistory() {
                     <span class="tx-time">${timeStr}</span>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="font-size:10px; color:#ddd; font-family:monospace;">${amountLabel}</span>
+                    <span style="font-size:10px; color:#ddd; font-family:monospace;">${actionLabel} • ${amountLabel}</span>
                     <span style="color:${s.err ? 'var(--sol)' : 'var(--success)'}; font-size:10px; font-weight:700;">
                         ${s.err ? '❌ FAILED' : '✅ SUCCESS'}
                     </span>
