@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v5.1</title>
+    <title>MySOL | Spending Vault v5.2</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -140,7 +140,8 @@
 
         /* ── Footer ── */
         .footer { text-align: center; padding: 10px; font-size: 10px; color: #666; border-top: 1px solid var(--border); background: #000; }
-        .disclaimer { text-align: center; padding: 8px 12px 14px; font-size: 10px; color: #777; background: #000; border-top: 1px solid #111; }
+        .disclaimer { text-align: center; padding: 10px 12px; font-size: 10px; color: #9a9a9a; background: #000; border-top: 1px solid #111; }
+        .disclaimer strong { color: #fff; font-weight: 800; }
 
         /* ── Mobile ── */
         @media (max-width: 768px) {
@@ -159,7 +160,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v5.1</h1>
+            <h1>MySOL Vault v5.2</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -339,11 +340,11 @@
 
     </div>
 
+    <div class="disclaimer"><strong>⚠️ Disclaimer:</strong> Use MySOL Vault at your own risk. Developer(s) not liable for lost funds. Withdraw and depositing to the vault requires using this page and the original connected wallet. One vault per wallet.</div>
     <div class="footer">
-        MySOL Vault v5.1 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
+        MySOL Vault v5.2 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
-    <div class="disclaimer">Disclaimer: Use MySOL Vault at your own risk. Developer(s) not liable for lost funds. Withdraw and depositing to the vault requires using this page and the original connected wallet. One vault per wallet.</div>
 </div>
 
 <div id="getting-started-modal" class="modal-overlay">
