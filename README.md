@@ -24,7 +24,7 @@ The core motivation is **self-sovereign discipline for high-risk behavior**. Thi
 
 * **Anti-Chasing Guardrail:** After a big win, funds in a normal wallet can be redeposited instantly. MySOL adds daily withdrawal constraints so you cannot immediately loop winnings back into higher-risk bets.
 * **Willpower as a Service:** By moving spending limits to the blockchain, you outsource discipline to deterministic program rules instead of emotion in the moment.
-* **Damage Limiter:** It does not prevent losses, but it can reduce the speed and size of self-inflicted losses by throttling how much can leave the vault per day.
+* **Damage Limiter:** This is a harm-reduction tool. It will not stop losses completely, but it can limit how fast you can lose money in a single day.
 
 ---
 
@@ -69,7 +69,7 @@ Unlike systems that reset at a fixed time, MySOL Vault uses a **Relative Rolling
 * **The Profit Protector:** Lock away daily trading profits in USDC so you don't trade them back into the market during a "tilt."
 * **The Big-Win Lockbox:** After a large gambling/trading win, move funds into the vault so you can't immediately redeposit and chase bigger wins or recover losses impulsively.
 * **The Living Allowance:** Deposit your monthly budget in USDC and set a daily limit (e.g., $50/day) to ensure your rent money lasts.
-* **The Damage-Control Layer:** Keep a larger stack in the vault and expose only daily-sized amounts to impulsive decisions. This is a behavioral guardrail, not a guarantee against all wallet-security risks.
+* **The Damage-Control Layer:** Keep a larger stack in the vault and expose only daily-sized amounts to impulsive decisions. This is a behavioral guardrail, not a full wallet-security solution.
 
 ---
 
@@ -112,6 +112,7 @@ Unlike systems that reset at a fixed time, MySOL Vault uses a **Relative Rolling
 Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds.  
 Vault withdrawals/deposits require valid on-chain instructions signed by the original vault owner wallet; this can be done via this app or other compatible Solana clients.  
 One vault per wallet.
+This project is not financial advice.
 
 ---
 
