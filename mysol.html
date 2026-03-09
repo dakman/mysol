@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v4.0</title>
+    <title>MySOL | Spending Vault v4.1</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -28,9 +28,9 @@
         }
         .topbar h1 { font-size: 15px; font-weight: 800; color: #fff; }
         .topbar .sub { font-size: 10px; color: #aaa; margin-top: 1px; }
-        .topbar-right { display: flex; align-items: center; gap: 12px; }
-        .limit-group { display: flex; align-items: center; gap: 8px; }
-        .limit-chip { width: 150px; border: 1px solid var(--border); border-radius: 8px; padding: 5px 7px; background: #000; }
+        .topbar-right { display: flex; flex: 1; align-items: center; justify-content: flex-end; gap: 14px; }
+        .limit-group { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 500px; }
+        .limit-chip { width: 220px; border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; background: #000; }
         .limit-chip-label { font-size: 9px; color: #aaa; text-transform: uppercase; margin-bottom: 3px; font-weight: 700; }
         .limit-chip-text { font-size: 9px; color: #ddd; margin-top: 3px; display: flex; justify-content: space-between; }
         .net-pill { display: flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 20px; background: #000; border: 1px solid var(--border); font-size: 10px; color: #ccc; }
@@ -116,6 +116,9 @@
         .pda-val   { font-size: 10px; color: #fff; font-family: monospace; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .pda-row a { font-size: 10px; color: #aaa; text-decoration: none; white-space: nowrap; }
         .pda-row a:hover { color: #fff; }
+        .pda-enf { font-size: 10px; color: #ddd; white-space: nowrap; border-left: 1px solid var(--border); padding-left: 8px; margin-left: 2px; }
+        .pda-enf.warn { color: #fff; }
+        .pda-enf.good { color: #fff; }
 
         /* ── Status ── */
         .status-bar { font-size: 10px; color: #aaa; font-family: monospace; word-break: break-all; text-align: center; }
@@ -155,7 +158,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v4.0</h1>
+            <h1>MySOL Vault v4.1</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -257,6 +260,7 @@
                     <span class="pda-label">Vault</span>
                     <span class="pda-val" id="pda-display">—</span>
                     <a id="pda-link" href="#" target="_blank">↗</a>
+                    <span class="pda-enf" id="pda-enforcement">—</span>
                 </div>
                 <div class="stats" id="vault-stats" style="display:none;">
                     <div class="stat">
@@ -274,10 +278,6 @@
                     <div class="stat">
                         <div class="stat-label">Vault USDC</div>
                         <div class="stat-value usdc" id="s-vusdc">—</div>
-                    </div>
-                    <div class="stat wide">
-                        <div class="stat-label">Enforcement</div>
-                        <div class="stat-value" id="s-expiry" style="font-size:11px;">—</div>
                     </div>
                 </div>
                 <button class="btn btn-ghost" id="refresh-btn" disabled>↻ Refresh</button>
@@ -340,7 +340,7 @@
 
     </div>
 
-    <div class="footer">MySOL Vault v4.0 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU</div>
+    <div class="footer">MySOL Vault v4.1 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU</div>
 </div>
 
 <div id="getting-started-modal" class="modal-overlay">
@@ -783,14 +783,14 @@ async function refreshVaultUI() {
     document.getElementById('hdr-usdc-spent').innerText = usdcFmt(usdcSpent) + ' spent';
     document.getElementById('hdr-usdc-rem').innerText   = usdcFmt(usdcRem) + ' left';
 
-    const expEl = document.getElementById('s-expiry');
+    const expEl = document.getElementById('pda-enforcement');
     if (isActive) {
         const days = Math.ceil(Number(d.expiryDate - nowSec) / 86400);
         expEl.innerText = '🔒 Active — ' + days + ' days left';
-        expEl.className = 'stat-value warn';
+        expEl.className = 'pda-enf warn';
     } else {
         expEl.innerText = '✓ Expired — withdraw freely';
-        expEl.className = 'stat-value good';
+        expEl.className = 'pda-enf good';
     }
 
     document.getElementById('fund-hint').innerText = fundToken === 'sol'
