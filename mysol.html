@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v5.4</title>
+    <title>MySOL | Spending Vault v5.5</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -160,7 +160,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v5.4</h1>
+            <h1>MySOL Vault v5.5</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -343,7 +343,7 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) not liable for lost funds. Withdraw and depositing to the vault requires using this page and the original connected wallet. One vault per wallet.</div>
     <div class="footer">
-        MySOL Vault v5.4 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
+        MySOL Vault v5.5 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -380,11 +380,13 @@
             <h2 style="font-size:14px; color:#fff;">How It Works</h2>
             <span id="close-modal" class="modal-close">✕</span>
         </div>
-        <div class="info-row">🔒 <b>Immutable</b> — rules locked on-chain forever once upgrade authority is burned.</div>
-        <div class="info-row">⛔ <b>On-chain enforcement</b> — blockchain rejects over-limit withdrawals, not just this app.</div>
-        <div class="info-row">💵 <b>SOL + USDC</b> — separate daily limits for each token. Both tracked independently.</div>
-        <div class="info-row">🏦 <b>Spending account</b> — fund the vault, spend from it. Limit applies to every tx out.</div>
-        <div class="info-row">🔑 <b>No private key</b> — vault PDA can't be imported. Only your program moves funds out.</div>
+        <div class="info-row">🔒 <b>Program Derived Vault (PDA)</b> — your vault address is derived on-chain from fixed seeds: <code>"vault"</code> + your wallet pubkey + <code>"v2"</code>. Same wallet, same vault for this program.</div>
+        <div class="info-row">🧱 <b>No private key for vault</b> — a PDA is not a normal wallet. You cannot export/import it with a seed phrase. Funds move only through program instructions you sign from your own wallet.</div>
+        <div class="info-row">⛔ <b>On-chain enforcement</b> — daily limits are checked inside the smart contract, so over-limit withdrawals fail at runtime even if someone uses a custom frontend.</div>
+        <div class="info-row">💵 <b>Dual-asset controls</b> — SOL and USDC each have independent limit, spent-today counter, and last-withdraw timestamp. One asset hitting limit does not block the other.</div>
+        <div class="info-row">🕒 <b>Rolling 24h behavior</b> — limits reset by elapsed time from last withdrawal, not midnight. After enforcement expires, withdrawals are unrestricted but funds remain in the vault until you move them.</div>
+        <div class="info-row">🛡️ <b>Security model</b> — authority checks tie vault actions to your wallet. Attackers cannot bypass limits by changing UI code; transactions still must satisfy on-chain constraints.</div>
+        <div class="info-row">⚙️ <b>Devnet-only testing tools</b> — reset/end-enforcement flows are intended for test usage on devnet. Use stricter assumptions before operating with real mainnet funds.</div>
         <a id="faucet-link" href="https://faucet.solana.com" target="_blank" style="display:none; margin-top:10px;" class="btn btn-ghost">Get Devnet SOL ↗</a>
     </div>
 </div>
