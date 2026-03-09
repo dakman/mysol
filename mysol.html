@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v3.1</title>
+    <title>MySOL | Spending Vault v3.2</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -148,7 +148,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v3.1</h1>
+            <h1>MySOL Vault v3.2</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -330,7 +330,7 @@
 
     </div>
 
-    <div class="footer">MySOL Vault v3.1 · Program: Ed3m1f...w4bt · Devnet USDC: 4zMMC9...ncDU</div>
+    <div class="footer">MySOL Vault v3.2 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU</div>
 </div>
 
 <div id="how-modal" class="modal-overlay">
@@ -349,7 +349,7 @@
 </div>
 
 <script>
-const PROGRAM_ID_STR  = "Ed3m1fhxygWysgyLSLryp3haQNcvMri8MkrqGvNDw4bt";
+const PROGRAM_ID_STR  = "2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV";
 const USDC_MINTS = {
     'devnet':       '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
     'mainnet-beta': 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
@@ -422,7 +422,7 @@ async function deriveVaultPDA() {
     return pda;
 }
 
-const ATA_PROGRAM   = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bS8";
+const ATA_PROGRAM   = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL";
 const SPL_TOKEN     = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 const SPL_TOKEN2022 = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
 
@@ -996,7 +996,7 @@ document.getElementById('fund-btn').addEventListener('click', async () => {
 
 function createATAInstruction(payer, ata, owner, mint, tokenProg = SPL_TOKEN_PROG) {
     return new TransactionInstruction({
-        programId: new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bS8"),
+        programId: new PublicKey(ATA_PROGRAM),
         keys: [
             { pubkey: payer,                                                       isSigner: true,  isWritable: true  },
             { pubkey: ata,                                                         isSigner: false, isWritable: true  },

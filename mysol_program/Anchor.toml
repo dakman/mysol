@@ -7,11 +7,11 @@ skip-lint = false
 
 
 [programs.localnet]
-mysol_program ="Ed3m1fhxygWysgyLSLryp3haQNcvMri8MkrqGvNDw4bt"
+mysol_program ="2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV"
 
 [programs.devnet]
-mysol_program = "Ed3m1fhxygWysgyLSLryp3haQNcvMri8MkrqGvNDw4bt"
-associated_token_program = "ATokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+mysol_program = "2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV"
+associated_token_program = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
 
 [registry]
 url = "https://api.apr.dev"

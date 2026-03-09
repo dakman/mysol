@@ -3,9 +3,8 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{
     self, CloseAccount, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
-use rand::Rng;
 
-declare_id!("Ed3m1fhxygWysgyLSLryp3haQNcvMri8MkrqGvNDw4bt");
+declare_id!("2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV");
 
 #[program]
 pub mod mysol_program {
@@ -221,7 +220,7 @@ pub struct Initialize<'info> {
     pub user: Signer<'info>,
     pub token_program: Interface<'info, TokenInterface>,
     #[account(
-        address = spl_associated_token_account::ID
+        address = anchor_spl::associated_token::ID
     )]
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
