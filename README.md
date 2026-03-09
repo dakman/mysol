@@ -9,6 +9,15 @@
 
 ---
 
+## 🚧 Mainnet Status
+
+**As of March 9, 2026, MySOL Vault is Devnet-only. Mainnet deployment/funding is not yet available.**
+
+* Do **not** use this project for real funds yet.
+* Use **Devnet** for testing until an audited mainnet deployment and published mainnet Program ID are provided.
+
+---
+
 ## Motivations: Why Use a Spending Vault?
 
 The core motivation is **Self-Sovereign Discipline**. In a 24/7 liquid market, the greatest risk to a user's capital is often their own impulsive behavior.
