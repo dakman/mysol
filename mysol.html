@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v3.7</title>
+    <title>MySOL | Spending Vault v3.8</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -33,8 +33,8 @@
         .net-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--warn); flex-shrink: 0; }
         .net-dot.live { background: var(--success); }
         .net-pill select { background: transparent; border: none; color: #fff; font-size: 10px; outline: none; cursor: pointer; }
-        #open-modal { color: #aaa; font-size: 11px; text-decoration: underline; cursor: pointer; transition: color 0.2s; }
-        #open-modal:hover { color: #fff; }
+        .top-link { color: #aaa; font-size: 11px; text-decoration: underline; cursor: pointer; transition: color 0.2s; }
+        .top-link:hover { color: #fff; }
         #connect-btn-top { padding: 7px 14px; border-radius: 20px; border: none; background: var(--sol); color: #fff; font-weight: 700; font-size: 11px; cursor: pointer; white-space: nowrap; }
         #connect-btn-top.connected { background: #000; color: var(--success); border: 1px solid var(--success); }
         #connect-btn-top:disabled { opacity: 0.5; cursor: default; }
@@ -148,11 +148,12 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v3.7</h1>
+            <h1>MySOL Vault v3.8</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
-            <a id="open-modal">How It Works</a>
+            <a id="open-getting-started" class="top-link">Getting Started</a>
+            <a id="open-modal" class="top-link">How It Works</a>
             <div class="net-pill">
                 <span class="net-dot" id="net-dot"></span>
                 <select id="network">
@@ -330,7 +331,25 @@
 
     </div>
 
-    <div class="footer">MySOL Vault v3.7 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU</div>
+    <div class="footer">MySOL Vault v3.8 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU</div>
+</div>
+
+<div id="getting-started-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+            <h2 style="font-size:14px; color:#fff;">Getting Started</h2>
+            <span id="close-getting-started" class="modal-close">✕</span>
+        </div>
+        <div class="info-row"><b>1.</b> Install a wallet: Phantom (preferred) or Solflare.</div>
+        <div class="info-row"><b>2.</b> Open this app and click <b>Connect Wallet</b>.</div>
+        <div class="info-row"><b>3.</b> Pick network at top right:
+            <br/>Devnet for testing (free SOL faucet + devnet USDC mint),
+            <br/>Mainnet for real funds.
+        </div>
+        <div class="info-row"><b>4.</b> Set daily limits + enforcement days, then click <b>Sign &amp; Burn Rules</b>.</div>
+        <div class="info-row"><b>5.</b> Deposit SOL/USDC into the vault, then withdraw within limits.</div>
+        <div class="info-row"><b>6.</b> On Devnet, <b>Reset Vault</b> can end enforcement and drain funds for testing.</div>
+    </div>
 </div>
 
 <div id="how-modal" class="modal-overlay">
@@ -376,8 +395,20 @@ const tokenAccountCache = new Map();
 const statusFadeTimers = new Map();
 
 // Modal logic
-document.getElementById('open-modal').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('how-modal').style.display = 'flex'; });
-document.getElementById('close-modal').addEventListener('click', () => { document.getElementById('how-modal').style.display = 'none'; });
+document.getElementById('open-getting-started').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('getting-started-modal').style.display = 'flex';
+});
+document.getElementById('close-getting-started').addEventListener('click', () => {
+    document.getElementById('getting-started-modal').style.display = 'none';
+});
+document.getElementById('open-modal').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('how-modal').style.display = 'flex';
+});
+document.getElementById('close-modal').addEventListener('click', () => {
+    document.getElementById('how-modal').style.display = 'none';
+});
 
 // ── Encoding ──────────────────────────────────────────────────────────────────
 function encodeU64(v) {
@@ -426,6 +457,24 @@ function setStatus(id, msg, cls='') {
             statusFadeTimers.delete(id);
         }, 2200);
         statusFadeTimers.set(id, timer);
+    }
+}
+
+async function refreshWalletBalancesUI() {
+    if (!walletPubkey) return;
+    try {
+        const solLamports = BigInt(await connection.getBalance(walletPubkey));
+        const userTokenInfo = await detectTokenProgram(walletPubkey, getUsdcMint());
+        const walletUsdcMicro = userTokenInfo.balance;
+        window._usdcTokenProg = userTokenInfo.program || SPL_TOKEN_PROG;
+        window._userUsdcATA = userTokenInfo.ata;
+
+        const shortKey = walletPubkey.toString().slice(0,4) + '...' + walletPubkey.toString().slice(-4);
+        document.getElementById('connect-btn-top').innerText = shortKey + ' (' + (Number(solLamports) / 1e9).toFixed(3) + ' SOL)';
+        document.getElementById('t1-sol').innerText  = solFmt(solLamports);
+        document.getElementById('t1-usdc').innerText = usdcFmt(walletUsdcMicro);
+    } catch (e) {
+        console.warn('Wallet balance refresh failed', e);
     }
 }
 function findProvider() {
@@ -850,6 +899,8 @@ async function doConnect() {
         if (currentNetwork === 'devnet') document.getElementById('faucet-link').style.display = 'block';
         markDone('tile-1');
         setStatus('s1-status', '');
+        clearRpcCaches();
+        await refreshWalletBalancesUI();
         await checkAndSetupVault();
     } catch(e) {
         console.error(e);
@@ -1312,6 +1363,9 @@ document.getElementById('close-vault-btn').addEventListener('click', async () =>
             document.getElementById(id).classList.add('locked');
         });
         vaultData = null;
+        clearRpcCaches();
+        await refreshWalletBalancesUI();
+        await fetchHistory();
     } catch(err) {
         console.error(err);
         setStatus('s2-status', 'Failed: ' + (err?.message || err), 'err');
