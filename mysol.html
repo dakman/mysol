@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v6.0</title>
+    <title>MySOL | Spending Vault v6.1</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -161,7 +161,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v6.0</h1>
+            <h1>MySOL Vault v6.1</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -354,7 +354,7 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v6.0 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
+        MySOL Vault v6.1 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -518,7 +518,7 @@ function setStatus(id, msg, cls='') {
     el.className = 'status-bar' + (cls ? ' '+cls : '');
 
     // Fade out transient success notices for deposit/withdraw actions.
-    if ((id === 's4-status' || id === 's5-status') && cls === 'ok' && msg) {
+    if ((id === 's2-status' || id === 's4-status' || id === 's5-status') && cls === 'ok' && msg) {
         const timer = setTimeout(() => {
             el.style.transition = 'opacity 0.8s ease';
             el.style.opacity = '0';
@@ -1636,7 +1636,7 @@ document.getElementById('close-vault-btn').addEventListener('click', async () =>
         // Clean out the old input boxes completely
         document.getElementById('limit-sol').value = '';
         document.getElementById('limit-usdc').value = '';
-        document.getElementById('enforce-interval').value = '90';
+        document.getElementById('enforce-interval').value = '';
         document.getElementById('enforce-unit').value = '0';
         document.getElementById('fund-amount').value = '';
         document.getElementById('withdraw-amount').value = '';
