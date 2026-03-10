@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v6.1</title>
+    <title>MySOL | Spending Vault v6.4</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -146,11 +146,14 @@
 
         /* ── Mobile ── */
         @media (max-width: 768px) {
-            .topbar { padding: 12px 14px; }
+            .topbar { padding: 12px 14px; flex-direction: column; align-items: flex-start; gap: 8px; }
             .topbar .sub { display: none; }
-            .topbar-right { gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-            .limit-group { width: 100%; justify-content: flex-end; }
-            .limit-chip { width: 120px; }
+            .topbar-right { width: 100%; gap: 8px; flex-wrap: wrap; justify-content: flex-start; }
+            .limit-group { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 8px; min-width: 0; }
+            .limit-chip { width: calc(50% - 4px); min-width: 140px; }
+            .net-pill { order: 2; }
+            .top-link { font-size: 12px; }
+            #connect-btn-top { width: 100%; }
             .grid { grid-template-columns: 1fr; background: var(--bg); gap: 0; }
             .tile { padding: 14px; border-bottom: 1px solid var(--border); }
         }
@@ -161,7 +164,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v6.3</h1>
+            <h1>MySOL Vault v6.4</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -354,7 +357,7 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v6.3 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
+        MySOL Vault v6.4 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -398,7 +401,10 @@
         <div class="info-row">🕒 <b>Rolling 24h behavior</b> — limits reset by elapsed time from last withdrawal, not midnight. After enforcement expires, withdrawals are unrestricted but funds remain in the vault until you move them.</div>
         <div class="info-row">🛡️ <b>Security model</b> — authority checks tie vault actions to your wallet. Attackers cannot bypass limits by changing UI code; transactions still must satisfy on-chain constraints.</div>
         <div class="info-row">⚙️ <b>Devnet-only testing tools</b> — reset/end-enforcement flows are intended for test usage on devnet. Use stricter assumptions before operating with real mainnet funds.</div>
-        <a id="faucet-link" href="https://faucet.solana.com" target="_blank" style="display:none; margin-top:10px;" class="btn btn-ghost">Get Devnet SOL ↗</a>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+            <a id="faucet-link" href="https://faucet.solana.com" target="_blank" style="display:none;" class="btn btn-ghost">Get Devnet SOL ↗</a>
+            <a id="faucet-usdc-link" href="https://faucet.circle.com/" target="_blank" style="display:none;" class="btn btn-ghost">Get Devnet USDC ↗</a>
+        </div>
     </div>
 </div>
 
@@ -445,6 +451,7 @@ const TOKEN_CACHE_TTL_MS = 12000;
 const tokenAccountCache = new Map();
 const statusFadeTimers = new Map();
 let enforcementTickerId = null;
+let vaultRentMinLamports = 0n;
 
 // Modal logic
 document.getElementById('open-getting-started').addEventListener('click', (e) => {
@@ -1023,6 +1030,7 @@ async function refreshVaultUI() {
         const vaultTokenInfo = await detectTokenProgram(vaultPDA, getUsdcMint());
         vaultUsdcMicro = vaultTokenInfo.balance;
         
+        vaultRentMinLamports = BigInt(await connection.getMinimumBalanceForRentExemption(128));
     } catch(e) {
         console.error("Refresh UI Error:", e);
     }
@@ -1096,9 +1104,15 @@ function updateWdHint(solRem, usdcRem, solLimit, usdcLimit, isActive) {
     if (wdToken === 'sol') {
         const remSol   = Number(solRem) / 1e9;
         const limitSol = Number(solLimit) / 1e9;
-        hint.innerText = `Limit: ${limitSol.toFixed(4)} SOL/day — Available: ${remSol.toFixed(4)} SOL`;
+        const withdrawableSol = vaultData
+            ? Math.max(0, Number(vaultData.balanceLamports - vaultRentMinLamports) / 1e9)
+            : 0;
+        hint.innerText = `Limit: ${limitSol.toFixed(4)} SOL/day — Available: ${remSol.toFixed(4)} SOL — Withdrawable: ${withdrawableSol.toFixed(4)} SOL`;
         hint.className = 'hint';
-        if (amount > remSol) {
+        if (amount > withdrawableSol) {
+            warning.style.display = 'block';
+            warning.innerHTML = `⛔ <strong>Rent minimum.</strong> Vault must keep a rent-exempt reserve, so max withdrawable is ${withdrawableSol.toFixed(4)} SOL.`;
+        } else if (amount > remSol) {
             warning.style.display = 'block';
             warning.innerHTML = `⛔ <strong>Will be rejected.</strong> Trying ${amount.toFixed(4)} SOL but only ${remSol.toFixed(4)} SOL available today.`;
         } else { warning.style.display = 'none'; }
@@ -1173,6 +1187,7 @@ document.getElementById('network').addEventListener('change', async () => {
     clearRpcCaches();
     document.getElementById('net-dot').className = 'net-dot' + (isDevnet ? '' : ' live');
     document.getElementById('faucet-link').style.display = isDevnet && walletPubkey ? 'block' : 'none';
+    document.getElementById('faucet-usdc-link').style.display = isDevnet && walletPubkey ? 'block' : 'none';
     if (walletPubkey) await checkAndSetupVault();
 });
 
@@ -1207,7 +1222,10 @@ async function doConnect() {
         document.getElementById('t1-addr').innerText = walletPubkey.toString().slice(0,10) + '...' + walletPubkey.toString().slice(-6);
         document.getElementById('t1-sol').innerText  = walSol.toFixed(4) + ' SOL';
         document.getElementById('t1-info').style.display = 'grid';
-        if (currentNetwork === 'devnet') document.getElementById('faucet-link').style.display = 'block';
+        if (currentNetwork === 'devnet') {
+            document.getElementById('faucet-link').style.display = 'block';
+            document.getElementById('faucet-usdc-link').style.display = 'block';
+        }
         markDone('tile-1');
         setStatus('s1-status', '');
         clearRpcCaches();
