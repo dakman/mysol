@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v5.9</title>
+    <title>MySOL | Spending Vault v6.0</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -161,7 +161,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v5.9</h1>
+            <h1>MySOL Vault v6.0</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -325,6 +325,10 @@
                 <div class="field">
                     <label id="wd-amount-label">Amount to Withdraw (SOL)</label>
                     <input type="number" id="withdraw-amount" step="0.01" min="0.000001">
+                    <div style="display:flex; justify-content:flex-end; gap:10px; font-size:10px;">
+                        <a href="#" id="wd-min" style="color:#aaa; text-decoration:underline;">MIN</a>
+                        <a href="#" id="wd-max" style="color:#aaa; text-decoration:underline;">MAX</a>
+                    </div>
                     <div class="hint" id="withdraw-hint">Fund vault first.</div>
                 </div>
                 <div id="withdraw-warning" class="alert alert-warn" style="display:none;font-size:10px;"></div>
@@ -350,7 +354,7 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v5.9 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
+        MySOL Vault v6.0 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -1067,6 +1071,36 @@ function updateWdHint(solRem, usdcRem, solLimit, usdcLimit, isActive) {
     }
 }
 
+async function getWithdrawBounds() {
+    if (!vaultData || !vaultPDA) return { min: 0, max: 0 };
+
+    const nowSec = BigInt(Math.floor(Date.now() / 1000));
+    const isActive = nowSec < vaultData.expiryDate;
+    const dayLimitSec = 86400n;
+    const solSpent = (nowSec - vaultData.lastWithdrawSol > dayLimitSec) ? 0n : vaultData.withdrawnSol;
+    const usdcSpent = (nowSec - vaultData.lastWithdrawUsdc > dayLimitSec) ? 0n : vaultData.withdrawnUsdc;
+    const solRem = vaultData.dailyLimitSol > solSpent ? vaultData.dailyLimitSol - solSpent : 0n;
+    const usdcRem = vaultData.dailyLimitUsdc > usdcSpent ? vaultData.dailyLimitUsdc - usdcSpent : 0n;
+
+    if (wdToken === 'sol') {
+        const rentMin = BigInt(await connection.getMinimumBalanceForRentExemption(128));
+        const vaultLamports = vaultData.balanceLamports > rentMin ? (vaultData.balanceLamports - rentMin) : 0n;
+        const maxLamports = isActive ? (vaultLamports > solRem ? solRem : vaultLamports) : vaultLamports;
+        return {
+            min: maxLamports > 0n ? 0.000001 : 0,
+            max: Number(maxLamports) / 1e9,
+        };
+    }
+
+    const vaultTokenInfo = await detectTokenProgram(vaultPDA, getUsdcMint());
+    const vaultUsdc = vaultTokenInfo.balance;
+    const maxUsdcMicro = isActive ? (vaultUsdc > usdcRem ? usdcRem : vaultUsdc) : vaultUsdc;
+    return {
+        min: maxUsdcMicro > 0n ? 0.000001 : 0,
+        max: Number(maxUsdcMicro) / 1e6,
+    };
+}
+
 function setFundToken(t) {
     fundToken = t;
     document.getElementById('fund-tab-sol').className  = 'ttab' + (t === 'sol'  ? ' active-sol'  : '');
@@ -1083,7 +1117,7 @@ function setWdToken(t) {
     document.getElementById('wd-tab-sol').className  = 'ttab' + (t === 'sol'  ? ' active-sol'  : '');
     document.getElementById('wd-tab-usdc').className = 'ttab' + (t === 'usdc' ? ' active-usdc' : '');
     document.getElementById('wd-amount-label').innerText = t === 'sol' ? 'Amount to Withdraw (SOL)' : 'Amount to Withdraw (USDC)';
-    document.getElementById('withdraw-amount').step  = t === 'sol' ? '0.01' : '1';
+    document.getElementById('withdraw-amount').step  = t === 'sol' ? '0.01' : '0.01';
     document.getElementById('withdraw-btn').innerText = t === 'sol' ? 'Withdraw SOL' : 'Withdraw USDC';
     document.getElementById('withdraw-btn').className = t === 'sol' ? 'btn btn-ghost-sol' : 'btn btn-ghost-usdc';
     if (vaultData) refreshVaultUIThrottled();
@@ -1403,6 +1437,30 @@ document.getElementById('withdraw-amount').addEventListener('input', () => {
     const solRem  = vaultData.dailyLimitSol  > solSpent  ? vaultData.dailyLimitSol  - solSpent  : 0n;
     const usdcRem = vaultData.dailyLimitUsdc > usdcSpent ? vaultData.dailyLimitUsdc - usdcSpent : 0n;
     updateWdHint(solRem, usdcRem, vaultData.dailyLimitSol, vaultData.dailyLimitUsdc, isActive);
+});
+
+document.getElementById('wd-min').addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+        const bounds = await getWithdrawBounds();
+        document.getElementById('withdraw-amount').value = bounds.min > 0 ? String(bounds.min) : '';
+        document.getElementById('withdraw-amount').dispatchEvent(new Event('input'));
+    } catch (_) {}
+});
+
+document.getElementById('wd-max').addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+        const bounds = await getWithdrawBounds();
+        if (bounds.max <= 0) {
+            document.getElementById('withdraw-amount').value = '';
+        } else if (wdToken === 'sol') {
+            document.getElementById('withdraw-amount').value = bounds.max.toFixed(9).replace(/\.?0+$/, '');
+        } else {
+            document.getElementById('withdraw-amount').value = bounds.max.toFixed(6).replace(/\.?0+$/, '');
+        }
+        document.getElementById('withdraw-amount').dispatchEvent(new Event('input'));
+    } catch (_) {}
 });
 
 document.getElementById('close-vault-btn').addEventListener('click', async () => {
