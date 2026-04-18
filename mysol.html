@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v6.4</title>
+    <title>MySOL | Spending Vault v6.5</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -164,7 +164,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v6.4</h1>
+            <h1>MySOL Vault v6.5</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -357,7 +357,7 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v6.4 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
+        MySOL Vault v6.5 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -627,7 +627,6 @@ async function deriveVaultPDA() {
 
 const ATA_PROGRAM   = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL";
 const SPL_TOKEN     = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
-const SPL_TOKEN2022 = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
 
 async function deriveATA(owner, mint, tokenProgram = SPL_TOKEN) {
     const [ata] = await PublicKey.findProgramAddress(
@@ -641,7 +640,6 @@ async function deriveATA(owner, mint, tokenProgram = SPL_TOKEN) {
     return ata;
 }
 
-// Deeply queries the blockchain to find ANY token account owned by this address for this mint
 async function detectTokenProgram(owner, mint) {
     const ownerStr = typeof owner === 'string' ? owner : owner.toBase58();
     const mintStr = typeof mint === 'string' ? mint : mint.toBase58();
@@ -650,56 +648,21 @@ async function detectTokenProgram(owner, mint) {
     if (cached && (Date.now() - cached.atMs) < TOKEN_CACHE_TTL_MS) {
         return cached.value;
     }
-
-    const matches = [];
-    for (const prog of [SPL_TOKEN, SPL_TOKEN2022]) {
-        try {
-            const res = await connection.getParsedTokenAccountsByOwner(owner, {
-                programId: new PublicKey(prog)
-            });
-            for (const a of res.value) {
-                const info = a.account.data.parsed.info;
-                if (info.mint === mintStr) {
-                    matches.push({
-                        ata:     a.pubkey,
-                        program: prog,
-                        balance: BigInt(info.tokenAmount.amount)
-                    });
-                }
-            }
-        } catch(e) {}
-    }
-
-    if (matches.length > 0) {
-        let total = 0n;
-        for (const m of matches) total += m.balance;
-
-        const ataByProg = {};
-        for (const prog of [SPL_TOKEN, SPL_TOKEN2022]) {
-            try {
-                ataByProg[prog] = (await deriveATA(owner, mint, prog)).toBase58();
-            } catch (_) {}
-        }
-
-        let preferred = null;
-        for (const m of matches) {
-            const derived = ataByProg[m.program];
-            if (derived && m.ata.toBase58() === derived) {
-                preferred = m;
-                break;
-            }
-        }
-        if (!preferred) {
-            preferred = matches.reduce((best, cur) => cur.balance > best.balance ? cur : best, matches[0]);
-        }
-
-        const out = { ata: preferred.ata, program: preferred.program, balance: total };
-        tokenAccountCache.set(cacheKey, { atMs: Date.now(), value: out });
-        return out;
-    }
-
     const ataStd = await deriveATA(owner, mint, SPL_TOKEN);
-    const out = { ata: ataStd, program: SPL_TOKEN, balance: 0n };
+    let balance = 0n;
+    try {
+        const res = await connection.getParsedTokenAccountsByOwner(owner, {
+            programId: new PublicKey(SPL_TOKEN)
+        });
+        for (const a of res.value) {
+            const info = a.account.data.parsed.info;
+            if (info.mint === mintStr) {
+                balance += BigInt(info.tokenAmount.amount);
+            }
+        }
+    } catch (_) {}
+
+    const out = { ata: ataStd, program: SPL_TOKEN, balance };
     tokenAccountCache.set(cacheKey, { atMs: Date.now(), value: out });
     return out;
 }
@@ -810,7 +773,6 @@ async function fetchHistory() {
         const dResetHex = toHex(await disc('reset_vault_devnet'));
         const dEndHex = toHex(await disc('end_enforcement_devnet'));
         const vaultAtaStd = (await deriveATA(vaultPDA, getUsdcMint(), SPL_TOKEN)).toBase58();
-        const vaultAta2022 = (await deriveATA(vaultPDA, getUsdcMint(), SPL_TOKEN2022)).toBase58();
 
         for (const s of sigs) {
             const row = document.createElement('div');
@@ -853,7 +815,7 @@ async function fetchHistory() {
                         }
                     }
 
-                    // SPL/Token-2022 transfer to/from vault ATA.
+                    // SPL token transfer to/from vault ATA.
                     if (
                         (parsed?.type === 'transfer' || parsed?.type === 'transferChecked') &&
                         parsed?.info?.amount != null
@@ -862,12 +824,12 @@ async function fetchHistory() {
                         const src = info.source;
                         const dst = info.destination;
                         const amt = BigInt(info.amount);
-                        if (dst === vaultAtaStd || dst === vaultAta2022) {
+                        if (dst === vaultAtaStd) {
                             actionLabel = `Deposit ${usdcShort(amt)}`;
                             amountLabel = '';
                             break;
                         }
-                        if (src === vaultAtaStd || src === vaultAta2022) {
+                        if (src === vaultAtaStd) {
                             actionLabel = `Withdraw ${usdcShort(amt)}`;
                             amountLabel = '';
                             break;

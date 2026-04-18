@@ -22,4 +22,4 @@ devnet-reset = []
 
 [dependencies]
 anchor-lang = "0.32.1"
-anchor-spl  = { version = "0.32.1", features = ["token", "token_2022"] }
+anchor-spl  = { version = "0.32.1", features = ["token"] }

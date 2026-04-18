@@ -1,8 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_interface::{
-    self, CloseAccount, Mint, TokenAccount, TokenInterface, TransferChecked,
-};
+use anchor_spl::token::{self, CloseAccount, Mint, Token, TokenAccount, TransferChecked};
 
 declare_id!("2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV");
 
@@ -108,11 +106,11 @@ pub mod mysol_program {
             vault.last_withdraw_usdc = clock.unix_timestamp;
         }
 
-        // CPI into SPL Token / Token-2022 — vault PDA signs via invoke_signed
+        // CPI into classic SPL Token — vault PDA signs via invoke_signed
         let user_key = ctx.accounts.user.key();
         let seeds: &[&[u8]] = &[b"vault", user_key.as_ref(), b"v2", &[ctx.bumps.vault]];
 
-        token_interface::transfer_checked(
+        token::transfer_checked(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
                 TransferChecked {
@@ -154,7 +152,7 @@ pub mod mysol_program {
 
         let user_key = ctx.accounts.user.key();
         let seeds: &[&[u8]] = &[b"vault", user_key.as_ref(), b"v2", &[ctx.bumps.vault]];
-        token_interface::close_account(
+        token::close_account(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
                 CloseAccount {
@@ -190,7 +188,7 @@ pub mod mysol_program {
 
         let user_key = ctx.accounts.user.key();
         let seeds: &[&[u8]] = &[b"vault", user_key.as_ref(), b"v2", &[ctx.bumps.vault]];
-        token_interface::close_account(
+        token::close_account(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
                 CloseAccount {
@@ -230,7 +228,7 @@ pub struct Initialize<'info> {
         bump
     )]
     pub vault: Account<'info, VaultState>,
-    pub usdc_mint: InterfaceAccount<'info, Mint>,
+    pub usdc_mint: Account<'info, Mint>,
     #[account(
         init,
         payer = user,
@@ -238,10 +236,10 @@ pub struct Initialize<'info> {
         associated_token::authority = vault,
         associated_token::token_program = token_program,
     )]
-    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub vault_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
     pub user: Signer<'info>,
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Program<'info, Token>,
     #[account(
         address = anchor_spl::associated_token::ID
     )]
@@ -274,7 +272,7 @@ pub struct WithdrawUsdc<'info> {
     pub vault: Account<'info, VaultState>,
 
     /// USDC mint — used by transfer_checked to validate decimals
-    pub usdc_mint: InterfaceAccount<'info, Mint>,
+    pub usdc_mint: Account<'info, Mint>,
 
     /// Vault USDC ATA — must be owned by vault PDA, same mint
     #[account(
@@ -283,7 +281,7 @@ pub struct WithdrawUsdc<'info> {
         token::authority = vault,
         token::token_program = token_program,
     )]
-    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub vault_token_account: Account<'info, TokenAccount>,
 
     /// User USDC ATA — receives tokens, same mint
     #[account(
@@ -292,11 +290,11 @@ pub struct WithdrawUsdc<'info> {
         token::authority = user,
         token::token_program = token_program,
     )]
-    pub user_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub user_token_account: Account<'info, TokenAccount>,
 
     #[account(mut)]
     pub user: Signer<'info>,
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Program<'info, Token>,
 }
 
 #[derive(Accounts)]
@@ -309,17 +307,17 @@ pub struct CloseVault<'info> {
         constraint = vault.owner == user.key() @ VaultError::Unauthorized
     )]
     pub vault: Account<'info, VaultState>,
-    pub usdc_mint: InterfaceAccount<'info, Mint>,
+    pub usdc_mint: Account<'info, Mint>,
     #[account(
         mut,
         token::mint      = usdc_mint,
         token::authority = vault,
         token::token_program = token_program,
     )]
-    pub vault_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub vault_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
     pub user: Signer<'info>,
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Program<'info, Token>,
 }
 
 #[cfg(feature = "devnet-reset")]
