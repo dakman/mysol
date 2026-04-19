@@ -262,6 +262,7 @@
                         <span id="hdr-sol-spent">—</span>
                         <span id="hdr-sol-rem">—</span>
                     </div>
+                    <div id="hdr-sol-reset" style="font-size:9px; color:#888; text-align:right; margin-top:2px; min-height:10px;"></div>
                 </div>
                 <div class="limit-chip">
                     <div class="limit-chip-label">Daily USDC Limit</div>
@@ -270,6 +271,7 @@
                         <span id="hdr-usdc-spent">—</span>
                         <span id="hdr-usdc-rem">—</span>
                     </div>
+                    <div id="hdr-usdc-reset" style="font-size:9px; color:#888; text-align:right; margin-top:2px; min-height:10px;"></div>
                 </div>
             </div>
             <div class="net-pill">
@@ -744,6 +746,23 @@ function ensureEnforcementTicker() {
         const isActive = nowSec < vaultData.expiryDate;
         if (wasActive && !isActive) {
             await refreshVaultUIThrottled(true);
+        }
+        
+        // Update daily limit reset countdowns
+        const solReset = document.getElementById('hdr-sol-reset');
+        const usdcReset = document.getElementById('hdr-usdc-reset');
+        if (solReset && usdcReset) {
+            const dayLimitSec = 86400n;
+            if (vaultData.withdrawnSol > 0n && (nowSec - vaultData.lastWithdrawSol <= dayLimitSec)) {
+                solReset.innerText = `Resets in ${fmtClockTime((vaultData.lastWithdrawSol + dayLimitSec) - nowSec)}`;
+            } else {
+                solReset.innerText = '';
+            }
+            if (vaultData.withdrawnUsdc > 0n && (nowSec - vaultData.lastWithdrawUsdc <= dayLimitSec)) {
+                usdcReset.innerText = `Resets in ${fmtClockTime((vaultData.lastWithdrawUsdc + dayLimitSec) - nowSec)}`;
+            } else {
+                usdcReset.innerText = '';
+            }
         }
     }, 1000);
 }
