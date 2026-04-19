@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v6.6</title>
+    <title>MySOL | Spending Vault v6.7</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -164,7 +164,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v6.6</h1>
+            <h1>MySOL Vault v6.7</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -357,7 +357,7 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v6.6 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
+        MySOL Vault v6.7 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -432,10 +432,24 @@ const USDC_MINTS = {
 };
 function getUsdcMint() { return USDC_MINTS[currentNetwork]; }
 const SPL_TOKEN_PROG  = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
+const RPC_ENDPOINTS = {
+    'devnet': [
+        'https://api.devnet.solana.com',
+        'https://rpc.ankr.com/solana_devnet',
+    ],
+    'mainnet-beta': [
+        'https://rpc.ankr.com/solana',
+        'https://api.mainnet-beta.solana.com',
+        'https://api.mainnet.solana.com',
+    ],
+};
+function getRpcEndpoint(network) {
+    return RPC_ENDPOINTS[network]?.[0] || 'https://api.mainnet-beta.solana.com';
+}
 
 const { Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram } = solanaWeb3;
 
-let connection     = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+let connection     = new Connection(getRpcEndpoint('mainnet-beta'), 'confirmed');
 let walletPubkey   = null;
 let walletProvider = null;
 let currentNetwork = 'mainnet-beta';
@@ -1145,7 +1159,7 @@ function setWdToken(t) {
 document.getElementById('network').addEventListener('change', async () => {
     currentNetwork = document.getElementById('network').value;
     const isDevnet = currentNetwork === 'devnet';
-    connection = new Connection(isDevnet ? 'https://api.devnet.solana.com' : 'https://api.mainnet-beta.solana.com', 'confirmed');
+    connection = new Connection(getRpcEndpoint(currentNetwork), 'confirmed');
     clearRpcCaches();
     document.getElementById('net-dot').className = 'net-dot' + (isDevnet ? '' : ' live');
     document.getElementById('faucet-link').style.display = isDevnet && walletPubkey ? 'block' : 'none';
@@ -1195,7 +1209,12 @@ async function doConnect() {
         await checkAndSetupVault();
     } catch(e) {
         console.error(e);
-        setStatus('s1-status', 'Rejected.', 'err');
+        const msg = String(e?.message || e || '');
+        if (msg.includes('403') || msg.toLowerCase().includes('access forbidden')) {
+            setStatus('s1-status', 'RPC access blocked. Hard refresh and reconnect.', 'err');
+        } else {
+            setStatus('s1-status', 'Rejected.', 'err');
+        }
     }
 }
 document.getElementById('connect-btn-top').addEventListener('click', doConnect);
