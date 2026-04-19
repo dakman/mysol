@@ -13,15 +13,7 @@
   <img src="./screenshot.png" alt="MySOL Vault — Live Dashboard" width="800">
 </p>
 
-### 🚀 Getting Started
-<p align="center">
-  <img src="./screenshot-getting-started.png" alt="Getting Started Guide" width="450">
-</p>
 
-### 🔎 How It Works
-<p align="center">
-  <img src="./screenshot-how-it-works.png" alt="How It Works — On-Chain Architecture" width="450">
-</p>
 
 ---
 
@@ -59,35 +51,14 @@ MySOL Vault handles both native Solana and SPL Tokens (specifically USDC).
 
 ## 🔎 How It Works
 
-### 1. Program Derived Vault (PDA)
-Each wallet gets a deterministic vault address derived from:
-* seed `"vault"`
-* the user wallet pubkey
-* seed `"v2"`
-
-This means the same wallet always maps to the same vault for this program.
-
-### 2. No Private Key for the Vault
-The vault is a PDA, not a normal wallet account. There is no seed phrase or private key to import/export for it. Funds can only move through valid program instructions signed by the owner wallet.
-
-### 1. The Rolling 24-Hour Window
-Unlike systems that reset at a fixed time, MySOL Vault uses a **Relative Rolling Window**:
-* When you withdraw, the program records the `unix_timestamp`.
-* On the next attempt, the program checks if `> 86,400 seconds` (24 hours) have passed since the *last* withdrawal.
-* If yes, your "Spent Today" counter resets, allowing for a new withdrawal.
-
-### 1b. Adjustable Enforcement Unit (Days or Minutes)
-Vault creation supports an adjustable enforcement interval unit:
-* **Days (`0`)**: default mode for normal usage.
-* **Minutes (`1`)**: testing mode for rapid validation (for example, a 1-minute expiry on devnet).
-
-This changes how `expiry_date` is computed during `initialize_vault`.
-
-### 2. Logic Gatekeepers
-* **`initialize_vault`**: Writes the rules. Once set, the `expiry_date` is a hard-coded deadline.
-* **`withdraw_sol` / `withdraw_usdc`**: Enforce daily limits on-chain. Over-limit transactions fail at runtime even from custom frontends.
-* **`close_vault`**: Closes only when conditions are met (post-enforcement and empty vault accounts).
-* **`reset_vault_devnet` / `end_enforcement_devnet`**: Devnet testing helpers (feature-gated).
+* 🔒 **Program Derived Vault (PDA)** — your vault address is derived on-chain from fixed seeds: `"vault"` + your wallet pubkey + `"v2"`. Same wallet, same vault for this program.
+* 🧱 **No private key for vault** — a PDA is not a normal wallet. You cannot export/import it with a seed phrase. Funds move only through program instructions you sign from your own wallet.
+* ⛔ **On-chain enforcement** — daily limits are checked inside the smart contract, so over-limit withdrawals fail at runtime even if someone uses a custom frontend.
+* 💵 **Dual-asset controls** — SOL and USDC each have independent limit, spent-today counter, and last-withdraw timestamp. One asset hitting limit does not block the other.
+* 🕒 **Rolling 24h behavior** — limits reset by elapsed time from last withdrawal, not midnight. After enforcement expires, withdrawals are unrestricted but funds remain in the vault until you move them.
+* 🛡️ **Security model** — authority checks tie vault actions to your wallet. Attackers cannot bypass limits by changing UI code; transactions still must satisfy on-chain constraints.
+* 🌐 **RPC endpoint** — the app needs an RPC gateway to read balances, fetch vault state, and send your signed transactions to Solana. The RPC can affect availability and read reliability, but it cannot sign for you or bypass on-chain rules.
+* ⚙️ **Devnet-only testing tools** — reset/end-enforcement flows are intended for test usage on devnet only. Mainnet users should treat the live program as the real spend-control path.
 
 ---
 
@@ -102,17 +73,25 @@ This changes how `expiry_date` is computed during `initialize_vault`.
 
 ## 🚀 Getting Started
 
-### Prerequisites
-* **Wallet:** Use the **Solflare** or **Phantom** mobile app.
-* **Environment:** Open the [Live Link](https://dakman.github.io/mysol/mysol.html) within the **built-in dApp browser** of these wallets.
-* **Network:** Mainnet is live by default. Switch to **Devnet** in the top-right selector if you want faucet-based testing first.
-* **RPC:** Use the `RPC` link in the header if you want to point the app at your own RPC provider.
+**1.** Install a wallet: Phantom (preferred) or Solflare.
 
-### Operation Steps
-1.  **Connect Wallet:** Link your wallet via the UI.
-2.  **Burn Rules:** Set your Daily Limit (for SOL and USDC), enforcement interval, and unit (Days or Minutes for testing).
-3.  **Fund:** Send SOL or USDC to the Vault PDA address shown in your dashboard.
-4.  **Spend:** Withdraw as needed. The dApp provides a live dashboard showing your "Remaining Today" balance.
+**2.** Open this app and click **Connect Wallet**.
+
+**3.** Mainnet is live and selected by default.
+* Use **Mainnet** for real funds.
+* Switch to **Devnet** if you want faucet-based testing first.
+
+> **Devnet SOL:** Get free SOL from [faucet.solana.com](https://faucet.solana.com/). Select **Devnet**, paste your wallet address, and request SOL.
+>
+> **Devnet USDC:** Use [faucet.circle.com](https://faucet.circle.com/). Set network to **Devnet**, choose **USDC**, paste your wallet address, then mint test tokens.
+
+**4.** Set daily limits + enforcement period, then click **Sign & Burn Rules**.
+
+**5.** Deposit SOL/USDC into the vault, then withdraw within limits.
+
+**6.** The app uses an RPC endpoint to read blockchain data and broadcast signed transactions. You can change the RPC from the **RPC** link in the header.
+
+**7.** On Devnet, **Reset Vault** can end enforcement and drain funds for testing.
 
 ---
 
