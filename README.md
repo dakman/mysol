@@ -8,7 +8,20 @@
 * **On-Chain Program:** [View on Solscan (Mainnet)](https://solscan.io/account/2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV)
 * **Smart Contract Logic:** The core enforcement rules are defined in [`lib.rs`](./mysol_program/programs/mysol_program/src/lib.rs).
 
-![MySOL Vault — Live Dashboard](./screenshot.png)
+### 📸 Live Dashboard
+<p align="center">
+  <img src="./screenshot.png" alt="MySOL Vault — Live Dashboard" width="800">
+</p>
+
+### 🚀 Getting Started
+<p align="center">
+  <img src="./screenshot-getting-started.png" alt="Getting Started Guide" width="450">
+</p>
+
+### 🔎 How It Works
+<p align="center">
+  <img src="./screenshot-how-it-works.png" alt="How It Works — On-Chain Architecture" width="450">
+</p>
 
 ---
 
