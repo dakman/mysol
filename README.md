@@ -8,23 +8,18 @@
 * **On-Chain Program:** [View on Solscan (Mainnet)](https://solscan.io/account/2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV)
 * **Smart Contract Logic:** The core enforcement rules are defined in [`lib.rs`](./mysol_program/programs/mysol_program/src/lib.rs).
 
-### 📸 Live Dashboard
-<p align="center">
-  <img src="./screenshot.png" alt="MySOL Vault — Live Dashboard" width="800">
-</p>
-
-
-
 ---
 
-## ✅ Mainnet Status
+## 🔎 How It Works
 
-**As of April 19, 2026, MySOL Vault is live on Solana mainnet.**
-
-* **Mainnet Program ID:** `2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV`
-* **Observed deploy cost:** about `1.6597 SOL`
-* **Per-vault account creation rent:** about `0.00382 SOL` plus transaction fees
-* **Devnet** is still available for testing and demo usage.
+* 🔒 **Program Derived Vault (PDA)** — your vault address is derived on-chain from fixed seeds: `"vault"` + your wallet pubkey + `"v2"`. Same wallet, same vault for this program.
+* 🧱 **No private key for vault** — a PDA is not a normal wallet. You cannot export/import it with a seed phrase. Funds move only through program instructions you sign from your own wallet.
+* ⛔ **On-chain enforcement** — daily limits are checked inside the smart contract, so over-limit withdrawals fail at runtime even if someone uses a custom frontend.
+* 💵 **Dual-asset controls** — SOL and USDC each have independent limit, spent-today counter, and last-withdraw timestamp. One asset hitting limit does not block the other.
+* 🕒 **Rolling 24h behavior** — limits reset by elapsed time from last withdrawal, not midnight. After enforcement expires, withdrawals are unrestricted but funds remain in the vault until you move them.
+* 🛡️ **Security model** — authority checks tie vault actions to your wallet. Attackers cannot bypass limits by changing UI code; transactions still must satisfy on-chain constraints.
+* 🌐 **RPC endpoint** — the app needs an RPC gateway to read balances, fetch vault state, and send your signed transactions to Solana. The RPC can affect availability and read reliability, but it cannot sign for you or bypass on-chain rules.
+* ⚙️ **Devnet-only testing tools** — reset/end-enforcement flows are intended for test usage on devnet only. Mainnet users should treat the live program as the real spend-control path.
 
 ---
 
@@ -49,25 +44,42 @@ MySOL Vault handles both native Solana and SPL Tokens (specifically USDC).
 
 ---
 
-## 🔎 How It Works
-
-* 🔒 **Program Derived Vault (PDA)** — your vault address is derived on-chain from fixed seeds: `"vault"` + your wallet pubkey + `"v2"`. Same wallet, same vault for this program.
-* 🧱 **No private key for vault** — a PDA is not a normal wallet. You cannot export/import it with a seed phrase. Funds move only through program instructions you sign from your own wallet.
-* ⛔ **On-chain enforcement** — daily limits are checked inside the smart contract, so over-limit withdrawals fail at runtime even if someone uses a custom frontend.
-* 💵 **Dual-asset controls** — SOL and USDC each have independent limit, spent-today counter, and last-withdraw timestamp. One asset hitting limit does not block the other.
-* 🕒 **Rolling 24h behavior** — limits reset by elapsed time from last withdrawal, not midnight. After enforcement expires, withdrawals are unrestricted but funds remain in the vault until you move them.
-* 🛡️ **Security model** — authority checks tie vault actions to your wallet. Attackers cannot bypass limits by changing UI code; transactions still must satisfy on-chain constraints.
-* 🌐 **RPC endpoint** — the app needs an RPC gateway to read balances, fetch vault state, and send your signed transactions to Solana. The RPC can affect availability and read reliability, but it cannot sign for you or bypass on-chain rules.
-* ⚙️ **Devnet-only testing tools** — reset/end-enforcement flows are intended for test usage on devnet only. Mainnet users should treat the live program as the real spend-control path.
-
----
-
 ## 🎯 Use Cases
 
 * **The Profit Protector:** Lock away daily trading profits in USDC so you don't trade them back into the market during a "tilt."
 * **The Big-Win Lockbox:** After a large gambling/trading win, move funds into the vault so you can't immediately redeposit and chase bigger wins or recover losses impulsively.
 * **The Living Allowance:** Deposit your monthly budget in USDC and set a daily limit (e.g., $50/day) to ensure your rent money lasts.
 * **The Damage-Control Layer:** Keep a larger stack in the vault and expose only daily-sized amounts to impulsive decisions. This is a behavioral guardrail, not a full wallet-security solution.
+
+---
+
+## ✅ Mainnet Status & Program Metadata
+
+**As of April 19, 2026, MySOL Vault is live on Solana mainnet and permanently immutable.**
+
+* **Mainnet Program ID:** [`2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV`](https://solscan.io/account/2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV) (Authority: none)
+* **Framework:** Anchor 0.32.1
+* **Account Seeds:** `[b"vault", user_pubkey, b"v2"]`
+* **Vault Account Space:** 128 bytes
+* **Devnet** is still available for testing and demo usage.
+
+---
+
+## ⚠️ Security Architecture & Disclaimer
+
+* **Non-Custodial:** Funds are held by the program code on-chain, not by a third-party developer.
+* **On-Chain Enforcement:** Limits are checked by program logic, not by UI state.
+* **Wallet-Scoped Authority:** Vault actions require the original wallet authority checks.
+* **Immutable:** The program's upgrade authority has been revoked (`Authority: none`). It cannot be modified by anyone.
+
+> **Disclaimer:** Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. Vault withdrawals/deposits require valid on-chain instructions signed by the original vault owner wallet; this can be done via this app or other compatible Solana clients. One vault per wallet. This project is not financial advice.
+
+---
+
+## 📸 Live Dashboard
+<p align="center">
+  <img src="./screenshot.png" alt="MySOL Vault — Live Dashboard" width="800">
+</p>
 
 ---
 
@@ -95,35 +107,6 @@ MySOL Vault handles both native Solana and SPL Tokens (specifically USDC).
 
 ---
 
-## 📊 Program Metadata
-
-| Field | Value |
-| :--- | :--- |
-| **Program ID** | `2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV` |
-| **Framework** | Anchor 0.32.1 |
-| **Account Seeds** | `[b"vault", user_pubkey, b"v2"]` |
-| **Vault Account Space** | 128 bytes |
-
----
-
-## ⚠️ Security Architecture
-
-* **Non-Custodial:** Funds are held by the program code on-chain, not by a third-party developer.
-* **On-Chain Enforcement:** Limits are checked by program logic, not by UI state.
-* **Wallet-Scoped Authority:** Vault actions require the original wallet authority checks.
-* **Devnet Helpers:** Reset/end-enforcement helpers are for testing workflows.
-
----
-
-## ⚠️ Disclaimer
-
-Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds.  
-Vault withdrawals/deposits require valid on-chain instructions signed by the original vault owner wallet; this can be done via this app or other compatible Solana clients.  
-One vault per wallet.
-This project is not financial advice.
-
----
-
 ## 💻 Local Development
 
 **To run locally:**
@@ -134,3 +117,4 @@ This project is not financial advice.
 ```bash
 # No dependencies required to view the UI
 open mysol.html
+```
