@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v7.2</title>
+    <title>MySOL | Spending Vault v7.3</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -146,16 +146,99 @@
 
         /* ── Mobile ── */
         @media (max-width: 768px) {
-            .topbar { padding: 12px 14px; flex-direction: column; align-items: flex-start; gap: 8px; }
+            /* Topbar: stack vertically, compact */
+            .topbar { padding: 12px 14px; flex-direction: column; align-items: flex-start; gap: 10px; }
             .topbar .sub { display: none; }
+            .topbar h1 { font-size: 16px; }
             .topbar-right { width: 100%; gap: 8px; flex-wrap: wrap; justify-content: flex-start; }
+
+            /* Limit chips: full width, side by side */
             .limit-group { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 8px; min-width: 0; }
-            .limit-chip { width: calc(50% - 4px); min-width: 140px; }
+            .limit-chip { width: calc(50% - 4px); min-width: 130px; }
+
+            /* Network + connect */
             .net-pill { order: 2; }
-            .top-link { font-size: 12px; }
-            #connect-btn-top { width: 100%; }
+            .net-pill select { font-size: 12px; }
+            #connect-btn-top { width: 100%; padding: 12px 14px; font-size: 13px; border-radius: 10px; }
+
+            /* Links row */
+            .top-link { font-size: 13px; padding: 4px 0; }
+
+            /* Grid: single column */
             .grid { grid-template-columns: 1fr; background: var(--bg); gap: 0; }
-            .tile { padding: 14px; border-bottom: 1px solid var(--border); }
+
+            /* Tiles: more padding, proper spacing */
+            .tile { padding: 16px; border-bottom: 1px solid var(--border); }
+            .tile-title { font-size: 14px; }
+            .tile-label { font-size: 10px; }
+
+            /* Bigger touch targets for inputs */
+            .field input { padding: 12px 12px; font-size: 16px; border-radius: 10px; }
+            .field label { font-size: 10px; }
+            select { font-size: 16px !important; }
+
+            /* Bigger buttons */
+            .btn { padding: 14px; font-size: 14px; border-radius: 10px; min-height: 44px; }
+            .btn-ghost, .btn-ghost-warn { padding: 12px; font-size: 13px; }
+
+            /* Token tabs */
+            .ttab { padding: 10px; font-size: 13px; min-height: 44px; }
+
+            /* Stats */
+            .stat { padding: 10px; }
+            .stat-label { font-size: 10px; }
+            .stat-value { font-size: 13px; }
+
+            /* PDA row: allow wrapping */
+            .pda-row { flex-wrap: wrap; gap: 6px; padding: 10px; }
+            .pda-val { font-size: 11px; }
+            .pda-enf { font-size: 11px; border-left: none; padding-left: 0; margin-left: 0; width: 100%; border-top: 1px solid var(--border); padding-top: 6px; margin-top: 2px; }
+
+            /* Hints */
+            .hint { font-size: 11px; }
+
+            /* Alerts */
+            .alert { font-size: 12px; padding: 10px 12px; }
+
+            /* Status bar */
+            .status-bar { font-size: 11px; }
+
+            /* Modals: full screen on mobile, scrollable */
+            .modal-content { max-width: 100%; width: 100%; border-radius: 0; max-height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px 16px; }
+            .modal-overlay { align-items: flex-start; }
+            .info-row { font-size: 12px; padding: 10px 0; }
+
+            /* History rows */
+            .tx-time { font-size: 10px; }
+
+            /* Footer */
+            .footer { font-size: 9px; padding: 12px 10px; }
+            .disclaimer { font-size: 10px; padding: 12px 14px; }
+
+            /* Withdraw min/max links: bigger tap targets */
+            #wd-min, #wd-max { font-size: 12px; padding: 6px 8px; }
+
+            /* Progress bars: thicker on mobile */
+            .prog-wrap { height: 4px; }
+            .prog-bar { height: 4px; }
+        }
+
+        /* ── Small phones ── */
+        @media (max-width: 480px) {
+            .topbar { padding: 10px 12px; gap: 8px; }
+            .topbar h1 { font-size: 15px; }
+            .limit-group { gap: 6px; }
+            .limit-chip { width: 100%; min-width: 0; }
+            .tile { padding: 14px 12px; }
+            .modal-content { padding: 16px 12px; }
+            .info-row { font-size: 11px; }
+            .pda-val { font-size: 10px; }
+        }
+
+        /* ── Safe area for notched phones ── */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .footer { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+            .topbar { padding-top: calc(12px + env(safe-area-inset-top)); }
         }
     </style>
 </head>
@@ -164,7 +247,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v7.2</h1>
+            <h1>MySOL Vault v7.3</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -358,7 +441,7 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v7.2 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
+        MySOL Vault v7.3 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -1037,13 +1120,13 @@ async function fetchHistory() {
             const displayDetail = amountLabel ? `${actionLabel} • ${amountLabel}` : actionLabel;
 
             row.innerHTML = `
-                <div style="display:flex; flex-direction:column; gap:2px;">
-                    <a href="${link}" target="_blank" style="color:#fff; text-decoration:underline; font-family:monospace;">${s.signature.slice(0,16)}...</a>
+                <div style="display:flex; flex-direction:column; gap:2px; min-width:0;">
+                    <a href="${link}" target="_blank" style="color:#fff; text-decoration:underline; font-family:monospace; font-size:11px; overflow:hidden; text-overflow:ellipsis;">${s.signature.slice(0,16)}...</a>
                     <span class="tx-time">${timeStr}</span>
                 </div>
-                <div style="display:flex; align-items:center; gap:8px; min-width:250px;">
-                    <span style="font-size:10px; color:#ddd; font-family:monospace; flex:1; text-align:left;">${displayDetail}</span>
-                    <span style="color:${s.err ? 'var(--sol)' : 'var(--success)'}; font-size:10px; font-weight:700;">
+                <div style="display:flex; align-items:center; gap:8px; min-width:0; flex-shrink:1;">
+                    <span style="font-size:10px; color:#ddd; font-family:monospace; flex:1; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${displayDetail}</span>
+                    <span style="color:${s.err ? 'var(--sol)' : 'var(--success)'}; font-size:10px; font-weight:700; white-space:nowrap;">
                         ${s.err ? '❌ FAILED' : '✅ SUCCESS'}
                     </span>
                 </div>`;
