@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v6.8</title>
+    <title>MySOL | Spending Vault v6.9</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -164,12 +164,13 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v6.8</h1>
+            <h1>MySOL Vault v6.9</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
             <a id="open-getting-started" class="top-link">Getting Started</a>
             <a id="open-modal" class="top-link">How It Works</a>
+            <a id="open-rpc-modal" class="top-link">RPC</a>
             <div id="limit-group" class="limit-group" style="display:none;">
                 <div class="limit-chip">
                     <div class="limit-chip-label">Daily SOL Limit</div>
@@ -357,7 +358,7 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v6.8 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
+        MySOL Vault v6.9 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -424,6 +425,25 @@
     </div>
 </div>
 
+<div id="rpc-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+            <h2 style="font-size:14px; color:#fff;">RPC Override</h2>
+            <span id="close-rpc-modal" class="modal-close">✕</span>
+        </div>
+        <div class="info-row">Set a custom RPC endpoint for the selected network. This is stored locally in your browser only and is not published on-chain.</div>
+        <div class="field" style="margin-top:10px;">
+            <label id="rpc-override-label">RPC URL</label>
+            <input type="text" id="rpc-override-input" placeholder="https://mainnet.helius-rpc.com/?api-key=..." />
+            <div class="hint" id="rpc-override-current">Using default RPC.</div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+            <button class="btn btn-ghost-good" id="save-rpc-btn" style="flex:1;">Save RPC</button>
+            <button class="btn btn-ghost-warn" id="clear-rpc-btn" style="flex:1;">Use Default</button>
+        </div>
+    </div>
+</div>
+
 <script>
 const PROGRAM_ID_STR  = "2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV";
 const USDC_MINTS = {
@@ -441,8 +461,33 @@ const RPC_ENDPOINTS = {
         'https://api.mainnet-beta.solana.com',
     ],
 };
+const RPC_STORAGE_KEY = 'mysol_rpc_overrides_v1';
+function loadRpcOverrides() {
+    try {
+        return JSON.parse(localStorage.getItem(RPC_STORAGE_KEY) || '{}');
+    } catch (_) {
+        return {};
+    }
+}
+function saveRpcOverrides(overrides) {
+    localStorage.setItem(RPC_STORAGE_KEY, JSON.stringify(overrides));
+}
+function getQueryRpcOverride() {
+    try {
+        const url = new URL(window.location.href);
+        return url.searchParams.get('rpc') || '';
+    } catch (_) {
+        return '';
+    }
+}
+function getStoredRpcOverride(network) {
+    const queryRpc = getQueryRpcOverride();
+    if (queryRpc) return queryRpc;
+    const overrides = loadRpcOverrides();
+    return overrides[network] || '';
+}
 function getRpcEndpoint(network) {
-    return RPC_ENDPOINTS[network]?.[0] || 'https://api.mainnet-beta.solana.com';
+    return getStoredRpcOverride(network) || RPC_ENDPOINTS[network]?.[0] || 'https://api.mainnet-beta.solana.com';
 }
 
 const { Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram } = solanaWeb3;
@@ -486,6 +531,46 @@ document.getElementById('open-disclaimer').addEventListener('click', (e) => {
 });
 document.getElementById('close-disclaimer').addEventListener('click', () => {
     document.getElementById('disclaimer-modal').style.display = 'none';
+});
+document.getElementById('open-rpc-modal').addEventListener('click', (e) => {
+    e.preventDefault();
+    syncRpcModal();
+    document.getElementById('rpc-modal').style.display = 'flex';
+});
+document.getElementById('close-rpc-modal').addEventListener('click', () => {
+    document.getElementById('rpc-modal').style.display = 'none';
+});
+function syncRpcModal() {
+    const networkLabel = currentNetwork === 'devnet' ? 'Devnet RPC URL' : 'Mainnet RPC URL';
+    const override = getStoredRpcOverride(currentNetwork);
+    document.getElementById('rpc-override-label').innerText = networkLabel;
+    document.getElementById('rpc-override-input').value = override;
+    document.getElementById('rpc-override-current').innerText = override
+        ? `Using override: ${override}`
+        : `Using default: ${getRpcEndpoint(currentNetwork)}`;
+}
+document.getElementById('save-rpc-btn').addEventListener('click', async () => {
+    const url = document.getElementById('rpc-override-input').value.trim();
+    if (!url.startsWith('https://') && !url.startsWith('http://')) {
+        document.getElementById('rpc-override-current').innerText = 'RPC URL must start with http:// or https://';
+        return;
+    }
+    const overrides = loadRpcOverrides();
+    overrides[currentNetwork] = url;
+    saveRpcOverrides(overrides);
+    connection = new Connection(getRpcEndpoint(currentNetwork), 'confirmed');
+    clearRpcCaches();
+    syncRpcModal();
+    if (walletPubkey) await checkAndSetupVault();
+});
+document.getElementById('clear-rpc-btn').addEventListener('click', async () => {
+    const overrides = loadRpcOverrides();
+    delete overrides[currentNetwork];
+    saveRpcOverrides(overrides);
+    connection = new Connection(getRpcEndpoint(currentNetwork), 'confirmed');
+    clearRpcCaches();
+    syncRpcModal();
+    if (walletPubkey) await checkAndSetupVault();
 });
 
 // ── Encoding ──────────────────────────────────────────────────────────────────
