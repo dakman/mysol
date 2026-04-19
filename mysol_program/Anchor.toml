@@ -13,11 +13,15 @@ mysol_program ="2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV"
 mysol_program = "2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV"
 associated_token_program = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
 
+[programs.mainnet]
+mysol_program = "2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV"
+associated_token_program = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "mainnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

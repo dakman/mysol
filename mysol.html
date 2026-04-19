@@ -258,7 +258,7 @@
                     </div>
                     <button class="btn btn-ghost-sol" id="init-btn" disabled>Sign &amp; Burn Rules</button>
                 </div>
-                <button class="btn btn-ghost-warn" id="close-vault-btn" style="display:none;">Reset Vault (Devnet)</button>
+                <button class="btn btn-ghost-warn" id="close-vault-btn" style="display:none;">Close Vault</button>
                 <div class="status-bar" id="s2-status"></div>
             </div>
         </div>
@@ -1127,6 +1127,22 @@ async function refreshVaultUI() {
     renderEnforcementStatus();
     ensureEnforcementTicker();
 
+    // Update close button label + state based on network and enforcement
+    const closeBtn = document.getElementById('close-vault-btn');
+    if (currentNetwork === 'devnet') {
+        closeBtn.innerText = 'Reset Vault (Devnet)';
+        closeBtn.disabled = false;
+        closeBtn.title = '';
+    } else if (!isActive) {
+        closeBtn.innerText = 'Close Vault & Re-initialize';
+        closeBtn.disabled = false;
+        closeBtn.title = 'Enforcement expired — drain funds and close this vault so you can create a new one.';
+    } else {
+        closeBtn.innerText = 'Close Vault (locked)';
+        closeBtn.disabled = true;
+        closeBtn.title = 'Enforcement is still active. You can close the vault after it expires.';
+    }
+
     document.getElementById('fund-hint').innerText = fundToken === 'sol'
         ? 'Wallet: ' + solFmt(walletSolLam) + ' (reserve ~0.001 for fees)'
         : 'Wallet: ' + usdcFmt(walletUsdcMicro);
@@ -1318,7 +1334,7 @@ async function checkAndSetupVault() {
         document.getElementById('limit-group').style.display = 'flex';
         document.getElementById('vault-exists-alert').style.display = 'block';
         document.getElementById('init-fields').style.display = 'none';
-        if (currentNetwork === 'devnet') document.getElementById('close-vault-btn').style.display = 'block';
+        document.getElementById('close-vault-btn').style.display = 'block';
         markDone('tile-2');
         unlock('tile-3'); unlock('tile-4'); unlock('tile-5'); 
         unlock('tile-6'); // TILE 6 is now the History Tile
@@ -1597,8 +1613,11 @@ document.getElementById('wd-max').addEventListener('click', async (e) => {
 });
 
 document.getElementById('close-vault-btn').addEventListener('click', async () => {
-    if (currentNetwork !== 'devnet') return;
-    if (!confirm('Reset vault on devnet? This will auto-withdraw available SOL/USDC first.')) return;
+    const isDevnet = currentNetwork === 'devnet';
+    const confirmMsg = isDevnet
+        ? 'Reset vault on devnet? This will auto-withdraw available SOL/USDC first.'
+        : 'Close vault and return all funds to your wallet? You can re-initialize a new vault afterwards.';
+    if (!confirm(confirmMsg)) return;
     try {
         setStatus('s2-status', 'Preparing auto-withdraw...');
         const vaultState = await readVault();
@@ -1611,7 +1630,7 @@ document.getElementById('close-vault-btn').addEventListener('click', async () =>
         let usdcRem = vaultState ? (vaultState.dailyLimitUsdc > usdcSpent ? vaultState.dailyLimitUsdc - usdcSpent : 0n) : 0n;
 
         // Devnet-only bypass: end enforcement first so full drain/reset can proceed.
-        if (isActive) {
+        if (isDevnet && isActive) {
             try {
                 setStatus('s2-status', 'Ending enforcement (dev mode)...');
                 const dEnd = await disc('end_enforcement_devnet');
@@ -1630,6 +1649,12 @@ document.getElementById('close-vault-btn').addEventListener('click', async () =>
             } catch (e) {
                 console.warn('end_enforcement_devnet unavailable or failed, continuing with normal limits', e);
             }
+        }
+
+        // On mainnet, enforcement must be expired to proceed.
+        if (!isDevnet && isActive) {
+            setStatus('s2-status', 'Enforcement is still active. Cannot close vault until it expires.', 'err');
+            return;
         }
 
         // 1) Auto-withdraw USDC from vault ATA to user ATA.
@@ -1651,29 +1676,24 @@ document.getElementById('close-vault-btn').addEventListener('click', async () =>
         } catch (_) {}
 
         if (vaultUsdcBal > 0n) {
-            const usdcToWithdraw = isActive
-                ? (vaultUsdcBal > usdcRem ? usdcRem : vaultUsdcBal)
-                : vaultUsdcBal;
-            if (usdcToWithdraw > 0n) {
-                setStatus('s2-status', 'Auto-withdrawing USDC...');
-                const dUsdc = await disc('withdraw_usdc');
-                const dataUsdc = new Uint8Array(16);
-                dataUsdc.set(dUsdc, 0);
-                dataUsdc.set(encodeU64(usdcToWithdraw), 8);
-                const ixUsdc = new TransactionInstruction({
-                    programId: new PublicKey(PROGRAM_ID_STR),
-                    keys: [
-                        { pubkey: vaultPDA,      isSigner: false, isWritable: true  },
-                        { pubkey: usdcMintPk,    isSigner: false, isWritable: false },
-                        { pubkey: vaultATA,      isSigner: false, isWritable: true  },
-                        { pubkey: userATA,       isSigner: false, isWritable: true  },
-                        { pubkey: walletPubkey,  isSigner: true,  isWritable: true  },
-                        { pubkey: new PublicKey(usdcProgStr), isSigner: false, isWritable: false },
-                    ],
-                    data: dataUsdc,
-                });
-                await sendAndConfirm('s2-status', ixUsdc);
-            }
+            setStatus('s2-status', 'Auto-withdrawing USDC...');
+            const dUsdc = await disc('withdraw_usdc');
+            const dataUsdc = new Uint8Array(16);
+            dataUsdc.set(dUsdc, 0);
+            dataUsdc.set(encodeU64(vaultUsdcBal), 8);
+            const ixUsdc = new TransactionInstruction({
+                programId: new PublicKey(PROGRAM_ID_STR),
+                keys: [
+                    { pubkey: vaultPDA,      isSigner: false, isWritable: true  },
+                    { pubkey: usdcMintPk,    isSigner: false, isWritable: false },
+                    { pubkey: vaultATA,      isSigner: false, isWritable: true  },
+                    { pubkey: userATA,       isSigner: false, isWritable: true  },
+                    { pubkey: walletPubkey,  isSigner: true,  isWritable: true  },
+                    { pubkey: new PublicKey(usdcProgStr), isSigner: false, isWritable: false },
+                ],
+                data: dataUsdc,
+            });
+            await sendAndConfirm('s2-status', ixUsdc);
         }
 
         // 2) Auto-withdraw SOL above rent reserve.
@@ -1683,30 +1703,25 @@ document.getElementById('close-vault-btn').addEventListener('click', async () =>
             const currentLamports = BigInt(vaultAccInfo.lamports);
             const withdrawableSol = currentLamports > rentMin ? (currentLamports - rentMin) : 0n;
             if (withdrawableSol > 0n) {
-                const solToWithdraw = isActive
-                    ? (withdrawableSol > solRem ? solRem : withdrawableSol)
-                    : withdrawableSol;
-                if (solToWithdraw > 0n) {
-                    setStatus('s2-status', 'Auto-withdrawing SOL...');
-                    const dSol = await disc('withdraw_sol');
-                    const dataSol = new Uint8Array(16);
-                    dataSol.set(dSol, 0);
-                    dataSol.set(encodeU64(solToWithdraw), 8);
-                    const ixSol = new TransactionInstruction({
-                        programId: new PublicKey(PROGRAM_ID_STR),
-                        keys: [
-                            { pubkey: vaultPDA,               isSigner: false, isWritable: true },
-                            { pubkey: walletPubkey,           isSigner: true,  isWritable: true },
-                            { pubkey: SystemProgram.programId,isSigner: false, isWritable: false },
-                        ],
-                        data: dataSol,
-                    });
-                    await sendAndConfirm('s2-status', ixSol);
-                }
+                setStatus('s2-status', 'Auto-withdrawing SOL...');
+                const dSol = await disc('withdraw_sol');
+                const dataSol = new Uint8Array(16);
+                dataSol.set(dSol, 0);
+                dataSol.set(encodeU64(withdrawableSol), 8);
+                const ixSol = new TransactionInstruction({
+                    programId: new PublicKey(PROGRAM_ID_STR),
+                    keys: [
+                        { pubkey: vaultPDA,               isSigner: false, isWritable: true },
+                        { pubkey: walletPubkey,           isSigner: true,  isWritable: true },
+                        { pubkey: SystemProgram.programId,isSigner: false, isWritable: false },
+                    ],
+                    data: dataSol,
+                });
+                await sendAndConfirm('s2-status', ixSol);
             }
         }
 
-        // 3) Verify vault is now drainable; if not, daily limits likely blocked full drain.
+        // 3) Verify vault is now drainable.
         const latestVaultAcc = await connection.getAccountInfo(vaultPDA);
         const latestVaultATAInfo = await connection.getAccountInfo(vaultATA);
         const latestUsdcBal = latestVaultATAInfo
@@ -1722,30 +1737,49 @@ document.getElementById('close-vault-btn').addEventListener('click', async () =>
         if (latestUsdcBal > 0n || latestWithdrawableSol > 0n) {
             setStatus(
                 's2-status',
-                'Vault still has funds above current daily limits. Withdraw remaining later or wait until enforcement expires.',
+                'Vault still has funds. Withdraw remaining manually and try again.',
                 'warn'
             );
             return;
         }
 
-        setStatus('s2-status', 'Resetting vault...');
-        let d = await disc('reset_vault_devnet');
-        let ix = new TransactionInstruction({
-            programId: new PublicKey(PROGRAM_ID_STR),
-            keys: [
-                { pubkey: vaultPDA,     isSigner: false, isWritable: true },
-                { pubkey: usdcMintPk,   isSigner: false, isWritable: false },
-                { pubkey: vaultATA,     isSigner: false, isWritable: true },
-                { pubkey: walletPubkey, isSigner: true,  isWritable: true },
-                { pubkey: new PublicKey(usdcProgStr), isSigner: false, isWritable: false },
-            ],
-            data: d,
-        });
-        try {
-            await sendAndConfirm('s2-status', ix);
-        } catch (_) {
-            d = await disc('close_vault');
-            ix = new TransactionInstruction({
+        // 4) Close the vault account on-chain.
+        setStatus('s2-status', 'Closing vault...');
+        if (isDevnet) {
+            // Try devnet reset first, fall back to close_vault
+            let d = await disc('reset_vault_devnet');
+            let ix = new TransactionInstruction({
+                programId: new PublicKey(PROGRAM_ID_STR),
+                keys: [
+                    { pubkey: vaultPDA,     isSigner: false, isWritable: true },
+                    { pubkey: usdcMintPk,   isSigner: false, isWritable: false },
+                    { pubkey: vaultATA,     isSigner: false, isWritable: true },
+                    { pubkey: walletPubkey, isSigner: true,  isWritable: true },
+                    { pubkey: new PublicKey(usdcProgStr), isSigner: false, isWritable: false },
+                ],
+                data: d,
+            });
+            try {
+                await sendAndConfirm('s2-status', ix);
+            } catch (_) {
+                d = await disc('close_vault');
+                ix = new TransactionInstruction({
+                    programId: new PublicKey(PROGRAM_ID_STR),
+                    keys: [
+                        { pubkey: vaultPDA,     isSigner: false, isWritable: true },
+                        { pubkey: usdcMintPk,   isSigner: false, isWritable: false },
+                        { pubkey: vaultATA,     isSigner: false, isWritable: true },
+                        { pubkey: walletPubkey, isSigner: true,  isWritable: true },
+                        { pubkey: new PublicKey(usdcProgStr), isSigner: false, isWritable: false },
+                    ],
+                    data: d,
+                });
+                await sendAndConfirm('s2-status', ix);
+            }
+        } else {
+            // Mainnet: use close_vault directly
+            const d = await disc('close_vault');
+            const ix = new TransactionInstruction({
                 programId: new PublicKey(PROGRAM_ID_STR),
                 keys: [
                     { pubkey: vaultPDA,     isSigner: false, isWritable: true },
@@ -1758,9 +1792,9 @@ document.getElementById('close-vault-btn').addEventListener('click', async () =>
             });
             await sendAndConfirm('s2-status', ix);
         }
-        setStatus('s2-status', '✓ Vault reset.', 'ok');
+        setStatus('s2-status', '✓ Vault closed. You can now set up a new vault.', 'ok');
         
-        // 🔥 Wait for RPC to catch up before fetching old data!
+        // Wait for RPC to catch up before fetching old data
         await new Promise(r => setTimeout(r, 3000));
 
         if (wsSubscriptionId) connection.removeAccountChangeListener(wsSubscriptionId);
