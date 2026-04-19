@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v7.0</title>
+    <title>MySOL | Spending Vault v7.1</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -164,7 +164,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v7.0</h1>
+            <h1>MySOL Vault v7.1</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -358,7 +358,7 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v7.0 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
+        MySOL Vault v7.1 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -385,7 +385,8 @@
         </div>
         <div class="info-row"><b>4.</b> Set daily limits + enforcement period, then click <b>Sign &amp; Burn Rules</b>.</div>
         <div class="info-row"><b>5.</b> Deposit SOL/USDC into the vault, then withdraw within limits.</div>
-        <div class="info-row"><b>6.</b> On Devnet, <b>Reset Vault</b> can end enforcement and drain funds for testing.</div>
+        <div class="info-row"><b>6.</b> The app uses an RPC endpoint to read blockchain data and broadcast signed transactions. You can change the RPC from the <b>RPC</b> link in the header.</div>
+        <div class="info-row"><b>7.</b> On Devnet, <b>Reset Vault</b> can end enforcement and drain funds for testing.</div>
     </div>
 </div>
 
@@ -401,6 +402,7 @@
         <div class="info-row">💵 <b>Dual-asset controls</b> — SOL and USDC each have independent limit, spent-today counter, and last-withdraw timestamp. One asset hitting limit does not block the other.</div>
         <div class="info-row">🕒 <b>Rolling 24h behavior</b> — limits reset by elapsed time from last withdrawal, not midnight. After enforcement expires, withdrawals are unrestricted but funds remain in the vault until you move them.</div>
         <div class="info-row">🛡️ <b>Security model</b> — authority checks tie vault actions to your wallet. Attackers cannot bypass limits by changing UI code; transactions still must satisfy on-chain constraints.</div>
+        <div class="info-row">🌐 <b>RPC endpoint</b> — the app needs an RPC gateway to read balances, fetch vault state, and send your signed transactions to Solana. The RPC can affect availability and read reliability, but it cannot sign for you or bypass on-chain rules.</div>
         <div class="info-row">⚙️ <b>Devnet-only testing tools</b> — reset/end-enforcement flows are intended for test usage on devnet only. Mainnet users should treat the live program as the real spend-control path.</div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
             <a id="faucet-link" href="https://faucet.solana.com" target="_blank" style="display:none;" class="btn btn-ghost">Get Devnet SOL ↗</a>
@@ -431,7 +433,7 @@
             <h2 style="font-size:14px; color:#fff;">RPC Override</h2>
             <span id="close-rpc-modal" class="modal-close">✕</span>
         </div>
-        <div class="info-row">Set a custom RPC endpoint for the selected network. This is stored locally in your browser only and is not published on-chain.</div>
+        <div class="info-row">Set a custom RPC endpoint for the selected network. The RPC is used for blockchain reads and transaction relay. This setting is stored locally in your browser only and is not published on-chain.</div>
         <div class="field" style="margin-top:10px;">
             <label id="rpc-override-label">RPC URL</label>
             <input type="text" id="rpc-override-input" placeholder="https://mainnet.helius-rpc.com/?api-key=..." />

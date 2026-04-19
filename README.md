@@ -4,6 +4,7 @@
 
 * **Live dApp:** [Launch MySOL Vault (GitHub Pages)](https://dakman.github.io/mysol/mysol.html) 
     * *Default network is now **Mainnet**. Switch to **Devnet** in the UI for free testing.*
+    * *The app uses an RPC endpoint for blockchain reads and transaction relay. Users can change the RPC from the UI if they want to use their own provider.*
 * **On-Chain Program:** [View on Solscan (Mainnet)](https://solscan.io/account/2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV)
 * **Smart Contract Logic:** The core enforcement rules are defined in [`lib.rs`](./mysol_program/programs/mysol_program/src/lib.rs).
 
@@ -37,6 +38,7 @@ MySOL Vault handles both native Solana and SPL Tokens (specifically USDC).
 * **Native SOL:** Handled via direct lamport reassignment from the Vault PDA to the user.
 * **USDC (SPL Token):** The vault creates an Associated Token Account (ATA) owned by the Vault PDA. Withdrawals are executed via `transfer_checked` CPI (Cross-Program Invocation).
 * **Mainnet USDC Mint:** `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`
+* **RPC:** The frontend uses an RPC endpoint to read chain data and broadcast signed transactions. Users can override the RPC from the app UI.
 
 ---
 
@@ -89,6 +91,7 @@ This changes how `expiry_date` is computed during `initialize_vault`.
 * **Wallet:** Use the **Solflare** or **Phantom** mobile app.
 * **Environment:** Open the [Live Link](https://dakman.github.io/mysol/mysol.html) within the **built-in dApp browser** of these wallets.
 * **Network:** Mainnet is live by default. Switch to **Devnet** in the top-right selector if you want faucet-based testing first.
+* **RPC:** Use the `RPC` link in the header if you want to point the app at your own RPC provider.
 
 ### Operation Steps
 1.  **Connect Wallet:** Link your wallet via the UI.
