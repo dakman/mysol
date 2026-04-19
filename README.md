@@ -3,18 +3,20 @@
 **MySOL Vault** is a non-custodial Solana protocol that allows users to lock **SOL** and **USDC** into a Program Derived Address (PDA) governed by immutable, on-chain spending limits.
 
 * **Live dApp:** [Launch MySOL Vault (GitHub Pages)](https://dakman.github.io/mysol/mysol.html) 
-    * *Note: The dApp is set to **Devnet** mode by default for safe testing.*
-* **On-Chain Program:** [View on Solscan (Devnet)](https://solscan.io/account/2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV?cluster=devnet)
+    * *Default network is now **Mainnet**. Switch to **Devnet** in the UI for free testing.*
+* **On-Chain Program:** [View on Solscan (Mainnet)](https://solscan.io/account/2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV)
 * **Smart Contract Logic:** The core enforcement rules are defined in [`lib.rs`](./mysol_program/programs/mysol_program/src/lib.rs).
 
 ---
 
-## 🚧 Mainnet Status
+## ✅ Mainnet Status
 
-**As of March 9, 2026, MySOL Vault is Devnet-only. Mainnet deployment/funding is not yet available.**
+**As of April 19, 2026, MySOL Vault is live on Solana mainnet.**
 
-* Do **not** use this project for real funds yet.
-* Use **Devnet** for testing until an audited mainnet deployment and published mainnet Program ID are provided.
+* **Mainnet Program ID:** `2EHg4iqQxpi5ZuftbDrTw2XoKR5HM56AEbo8Am4rSTRV`
+* **Observed deploy cost:** about `1.6597 SOL`
+* **Per-vault account creation rent:** about `0.00382 SOL` plus transaction fees
+* **Devnet** is still available for testing and demo usage.
 
 ---
 
@@ -34,6 +36,7 @@ MySOL Vault handles both native Solana and SPL Tokens (specifically USDC).
 
 * **Native SOL:** Handled via direct lamport reassignment from the Vault PDA to the user.
 * **USDC (SPL Token):** The vault creates an Associated Token Account (ATA) owned by the Vault PDA. Withdrawals are executed via `transfer_checked` CPI (Cross-Program Invocation).
+* **Mainnet USDC Mint:** `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`
 
 ---
 
@@ -85,6 +88,7 @@ This changes how `expiry_date` is computed during `initialize_vault`.
 ### Prerequisites
 * **Wallet:** Use the **Solflare** or **Phantom** mobile app.
 * **Environment:** Open the [Live Link](https://dakman.github.io/mysol/mysol.html) within the **built-in dApp browser** of these wallets.
+* **Network:** Mainnet is live by default. Switch to **Devnet** in the top-right selector if you want faucet-based testing first.
 
 ### Operation Steps
 1.  **Connect Wallet:** Link your wallet via the UI.

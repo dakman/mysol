@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v6.5</title>
+    <title>MySOL | Spending Vault v6.6</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <style>
@@ -164,7 +164,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v6.5</h1>
+            <h1>MySOL Vault v6.6</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -189,10 +189,10 @@
                 </div>
             </div>
             <div class="net-pill">
-                <span class="net-dot" id="net-dot"></span>
+                <span class="net-dot live" id="net-dot"></span>
                 <select id="network">
-                    <option value="devnet" selected>Devnet</option>
-                    <option value="mainnet-beta">Mainnet</option>
+                    <option value="devnet">Devnet</option>
+                    <option value="mainnet-beta" selected>Mainnet</option>
                 </select>
             </div>
             <button id="connect-btn-top">Connect Wallet</button>
@@ -357,7 +357,7 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v6.5 · Program: 2EHg4i...rSTRV · Devnet USDC: 4zMMC9...ncDU ·
+        MySOL Vault v6.6 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -370,9 +370,9 @@
         </div>
         <div class="info-row"><b>1.</b> Install a wallet: Phantom (preferred) or Solflare.</div>
         <div class="info-row"><b>2.</b> Open this app and click <b>Connect Wallet</b>.</div>
-        <div class="info-row"><b>3.</b> Pick network at top right:
-            <br/>Devnet for testing (free SOL faucet + devnet USDC mint),
-            <br/>Mainnet for real funds.
+        <div class="info-row"><b>3.</b> Mainnet is live and selected by default.
+            <br/>Use <b>Mainnet</b> for real funds.
+            <br/>Switch to <b>Devnet</b> if you want faucet-based testing first.
         </div>
         <div class="info-row"><b>Devnet SOL:</b> Get free SOL from
             <a href="https://faucet.solana.com/" target="_blank" style="color:#fff; text-decoration:underline;">faucet.solana.com</a>.
@@ -382,7 +382,7 @@
             <a href="https://faucet.circle.com/" target="_blank" style="color:#fff; text-decoration:underline;">faucet.circle.com</a>.
             <br/>Set network to <b>Devnet</b>, choose <b>USDC</b>, paste your wallet address, then mint test tokens.
         </div>
-        <div class="info-row"><b>4.</b> Set daily limits + enforcement days, then click <b>Sign &amp; Burn Rules</b>.</div>
+        <div class="info-row"><b>4.</b> Set daily limits + enforcement period, then click <b>Sign &amp; Burn Rules</b>.</div>
         <div class="info-row"><b>5.</b> Deposit SOL/USDC into the vault, then withdraw within limits.</div>
         <div class="info-row"><b>6.</b> On Devnet, <b>Reset Vault</b> can end enforcement and drain funds for testing.</div>
     </div>
@@ -400,7 +400,7 @@
         <div class="info-row">💵 <b>Dual-asset controls</b> — SOL and USDC each have independent limit, spent-today counter, and last-withdraw timestamp. One asset hitting limit does not block the other.</div>
         <div class="info-row">🕒 <b>Rolling 24h behavior</b> — limits reset by elapsed time from last withdrawal, not midnight. After enforcement expires, withdrawals are unrestricted but funds remain in the vault until you move them.</div>
         <div class="info-row">🛡️ <b>Security model</b> — authority checks tie vault actions to your wallet. Attackers cannot bypass limits by changing UI code; transactions still must satisfy on-chain constraints.</div>
-        <div class="info-row">⚙️ <b>Devnet-only testing tools</b> — reset/end-enforcement flows are intended for test usage on devnet. Use stricter assumptions before operating with real mainnet funds.</div>
+        <div class="info-row">⚙️ <b>Devnet-only testing tools</b> — reset/end-enforcement flows are intended for test usage on devnet only. Mainnet users should treat the live program as the real spend-control path.</div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
             <a id="faucet-link" href="https://faucet.solana.com" target="_blank" style="display:none;" class="btn btn-ghost">Get Devnet SOL ↗</a>
             <a id="faucet-usdc-link" href="https://faucet.circle.com/" target="_blank" style="display:none;" class="btn btn-ghost">Get Devnet USDC ↗</a>
@@ -435,10 +435,10 @@ const SPL_TOKEN_PROG  = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 
 const { Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram } = solanaWeb3;
 
-let connection     = new Connection('https://api.devnet.solana.com', 'confirmed');
+let connection     = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
 let walletPubkey   = null;
 let walletProvider = null;
-let currentNetwork = 'devnet';
+let currentNetwork = 'mainnet-beta';
 let vaultPDA       = null;
 let vaultData      = null;
 let fundToken      = 'sol';
