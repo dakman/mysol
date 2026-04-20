@@ -454,10 +454,15 @@
             <h2 style="font-size:14px; color:#fff;">Getting Started</h2>
             <span id="close-getting-started" class="modal-close">✕</span>
         </div>
-        <div class="info-row"><b>1.</b> Install <b>Phantom</b> (preferred), <b>Solflare</b>, or use a mobile dApp browser.</div>
-        <div class="info-row"><b>2.</b> Open this app and click <b>Connect Wallet</b>.</div>
-        <div class="info-row"><b>3.</b> Set daily limits + enforcement period, then click <b>Sign &amp; Burn Rules</b>.</div>
-        <div class="info-row"><b>4.</b> Deposit SOL/USDC into the vault, then withdraw within limits.</div>
+        <div class="info-row"><b>1.</b> Install <b>Phantom</b> or <b>Solflare</b>.</div>
+        <div class="info-row"><b>2.</b> Copy the URL and paste it into your wallet's <b>built-in dApp Browser</b> (usually a 🌐 Globe icon).
+            <div style="background:#111; padding:10px; border-radius:6px; font-size:10px; margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
+                <code style="word-break:break-all; color:var(--success);">https://dakman.github.io/mysol/mysol.html</code>
+                <button onclick="navigator.clipboard.writeText('https://dakman.github.io/mysol/mysol.html'); this.innerText='COPIED'; setTimeout(()=>this.innerText='COPY', 2000);" style="background:var(--success); color:#000; border:none; padding:4px 8px; border-radius:4px; font-size:9px; font-weight:800; cursor:pointer; margin-left:10px; flex-shrink:0;">COPY</button>
+            </div>
+        </div>
+        <div class="info-row"><b>3.</b> Click <b>Connect Wallet</b> inside the dApp browser.</div>
+        <div class="info-row"><b>4.</b> Set limits, then click <b>Sign &amp; Burn Rules</b>.</div>
         <div class="info-row"><b>Mainnet is live.</b> Use <b>Devnet</b> only for testing.
             <br/><i>(Devnet tokens can be requested at faucet.solana.com)</i>
         </div>

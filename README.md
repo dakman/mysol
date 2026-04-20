@@ -94,13 +94,13 @@ MySOL Vault handles both native Solana and SPL Tokens (specifically USDC).
 
 ## 🚀 Getting Started
 
-**1.** Install **Phantom Wallet** (preferred), **Solflare**, or use a mobile dApp browser.
+**1.** Install **Phantom** or **Solflare** on your mobile device.
 
-**2.** Open the [Live App](https://dakman.github.io/mysol/mysol.html) and click **Connect Wallet**.
+**2.** Copy this URL: `https://dakman.github.io/mysol/mysol.html`
 
-**3.** Set daily limits + enforcement period, then click **Sign & Burn Rules**.
+**3.** Open your wallet's **built-in dApp Browser** (usually the 🌐 Globe icon) and paste the URL.
 
-**4.** Deposit SOL/USDC into the vault, then withdraw within limits.
+**4.** Click **Connect Wallet**, set your limits, and **Sign & Burn Rules**.
 
 > **Note:** Mainnet is live. Use **Devnet** only for testing. Devnet tokens can be requested at [faucet.solana.com](https://faucet.solana.com/).
 
