@@ -454,7 +454,7 @@
             <h2 style="font-size:14px; color:#fff;">Getting Started</h2>
             <span id="close-getting-started" class="modal-close">✕</span>
         </div>
-        <div class="info-row"><b>1.</b> Install <b>Phantom Wallet</b> (preferred).</div>
+        <div class="info-row"><b>1.</b> Install <b>Phantom</b> (preferred), <b>Solflare</b>, or use a mobile dApp browser.</div>
         <div class="info-row"><b>2.</b> Open this app and click <b>Connect Wallet</b>.</div>
         <div class="info-row"><b>3.</b> Set daily limits + enforcement period, then click <b>Sign &amp; Burn Rules</b>.</div>
         <div class="info-row"><b>4.</b> Deposit SOL/USDC into the vault, then withdraw within limits.</div>
@@ -803,7 +803,11 @@ async function refreshWalletBalancesUI() {
 function findProvider() {
     if (window.solana?.isPhantom)    return window.solana;
     if (window.solflare?.isSolflare) return window.solflare;
-    if (window.solana)               return window.solana;
+    if (window.solana?.providers?.length) {
+        return window.solana.providers.find(p => p.isPhantom) || window.solana.providers[0];
+    }
+    if (window.solana) return window.solana;
+    if (window.solflare) return window.solflare;
     return null;
 }
 function unlock(id) { const e = document.getElementById(id); e.classList.remove('locked'); e.classList.add('active'); }
@@ -1364,7 +1368,9 @@ document.getElementById('network').addEventListener('change', async () => {
 const detectInterval = setInterval(() => {
     const p = findProvider();
     if (!p) return;
-    const lbl = p.isPhantom ? 'Connect Phantom' : 'Connect Wallet';
+    let lbl = 'Connect Wallet';
+    if (p.isPhantom) lbl = 'Connect Phantom';
+    else if (p.isSolflare || window.solflare) lbl = 'Connect Solflare';
     document.getElementById('connect-btn-top').innerText  = lbl;
     document.getElementById('connect-btn-tile').innerText = lbl;
 }, 600);

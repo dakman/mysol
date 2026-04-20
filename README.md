@@ -85,7 +85,7 @@ MySOL Vault handles both native Solana and SPL Tokens (specifically USDC).
 
 ## 🚀 Getting Started
 
-**1.** Install **Phantom Wallet** (preferred).
+**1.** Install **Phantom Wallet** (preferred), **Solflare**, or use a mobile dApp browser.
 
 **2.** Open the [Live App](https://dakman.github.io/mysol/mysol.html) and click **Connect Wallet**.
 
