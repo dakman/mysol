@@ -85,25 +85,17 @@ MySOL Vault handles both native Solana and SPL Tokens (specifically USDC).
 
 ## 🚀 Getting Started
 
-**1.** Install a wallet: Phantom (preferred) or Solflare.
+**1.** Install **Phantom Wallet** (preferred).
 
-**2.** Open this app and click **Connect Wallet**.
+**2.** Open the [Live App](https://dakman.github.io/mysol/mysol.html) and click **Connect Wallet**.
 
-**3.** Mainnet is live and selected by default.
-* Use **Mainnet** for real funds.
-* Switch to **Devnet** if you want faucet-based testing first.
+**3.** Set daily limits + enforcement period, then click **Sign & Burn Rules**.
 
-> **Devnet SOL:** Get free SOL from [faucet.solana.com](https://faucet.solana.com/). Select **Devnet**, paste your wallet address, and request SOL.
->
-> **Devnet USDC:** Use [faucet.circle.com](https://faucet.circle.com/). Set network to **Devnet**, choose **USDC**, paste your wallet address, then mint test tokens.
+**4.** Deposit SOL/USDC into the vault, then withdraw within limits.
 
-**4.** Set daily limits + enforcement period, then click **Sign & Burn Rules**.
+> **Note:** Mainnet is live. Use **Devnet** only for testing. Devnet tokens can be requested at [faucet.solana.com](https://faucet.solana.com/).
 
-**5.** Deposit SOL/USDC into the vault, then withdraw within limits.
-
-**6.** The app uses an RPC endpoint to read blockchain data and broadcast signed transactions. You can change the RPC from the **RPC** link in the header.
-
-**7.** On Devnet, **Reset Vault** can end enforcement and drain funds for testing.
+**Security Note:** This program is immutable (`Authority: none`) and non-custodial. Funds move only via your wallet signature.
 
 ---
 
