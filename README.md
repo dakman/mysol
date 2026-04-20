@@ -10,12 +10,12 @@
 
 ---
 
-## 🆕 Latest Features (v7.4)
+## 🆕 Latest Features (v7.5)
 
-*   **⏱️ Real-Time Reset Countdowns**: The dashboard now displays a live countdown timer showing exactly when your daily spending limit will reset (24 hours after your last withdrawal).
-*   **🔌 Expanded Wallet Support**: Improved detection for **Solflare**, **Brave**, and in-app mobile browsers. The connection buttons now intelligently detect and label your active wallet.
-*   **📱 Mobile Optimized Onboarding**: Simplified "Getting Started" flow specifically tailored for mobile dApp users.
-*   **🔒 Permanent Immutability**: Program upgrade authority has been permanently revoked (`Authority: none`).
+*   **📱 One-Click Mobile Onboarding**: Added explicit dApp browser instructions and a built-in **Copy URL** button to make it easy to paste the app into Phantom or Solflare.
+*   **⏱️ Real-Time Reset Countdowns**: The dashboard displays a live countdown timer showing exactly when your daily spending limit will reset.
+*   **🔌 Expanded Wallet Support**: Robust detection for **Solflare**, **Brave**, and in-app mobile browsers with intelligent connection labels.
+*   **🔒 Permanent Immutability**: Program upgrade authority is permanently revoked (`Authority: none`).
 
 ---
 
