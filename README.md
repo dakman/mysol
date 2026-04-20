@@ -10,9 +10,10 @@
 
 ---
 
-## 🆕 Latest Features (v7.5)
+## 🆕 Latest Features (v7.6)
 
-*   **📱 One-Click Mobile Onboarding**: Added explicit dApp browser instructions and a built-in **Copy URL** button to make it easy to paste the app into Phantom or Solflare.
+*   **🖥️ Split Platform Instructions**: Clear, separate onboarding paths for Desktop (Extension) and Mobile (In-App Browser).
+*   **📱 One-Click Mobile Onboarding**: Built-in **Copy URL** button to make it easy to paste the app into Phantom or Solflare.
 *   **⏱️ Real-Time Reset Countdowns**: The dashboard displays a live countdown timer showing exactly when your daily spending limit will reset.
 *   **🔌 Expanded Wallet Support**: Robust detection for **Solflare**, **Brave**, and in-app mobile browsers with intelligent connection labels.
 *   **🔒 Permanent Immutability**: Program upgrade authority is permanently revoked (`Authority: none`).
@@ -94,13 +95,20 @@ MySOL Vault handles both native Solana and SPL Tokens (specifically USDC).
 
 ## 🚀 Getting Started
 
-**1.** Install **Phantom** or **Solflare** on your mobile device.
+### 🖥️ Desktop (Extension)
+1. Install the **Phantom** or **Solflare** browser extension.
+2. Open the [Live App](https://dakman.github.io/mysol/mysol.html) in your browser.
+3. Click **Connect Wallet** and set your spending limits.
 
-**2.** Copy this URL: `https://dakman.github.io/mysol/mysol.html`
+### 📱 Mobile (App)
+1. Install **Phantom** or **Solflare** from the App Store / Play Store.
+2. Copy this URL: `https://dakman.github.io/mysol/mysol.html`
+3. Open your wallet app and tap the **dApp Browser** (usually a 🌐 Globe icon).
+4. Paste the URL into the dApp browser and click **Connect Wallet**.
 
-**3.** Open your wallet's **built-in dApp Browser** (usually the 🌐 Globe icon) and paste the URL.
+---
 
-**4.** Click **Connect Wallet**, set your limits, and **Sign & Burn Rules**.
+**Next Steps:** Once connected, click **Sign & Burn Rules** to lock your spending limits. You can then deposit SOL or USDC into your unique vault address.
 
 > **Note:** Mainnet is live. Use **Devnet** only for testing. Devnet tokens can be requested at [faucet.solana.com](https://faucet.solana.com/).
 
