@@ -454,7 +454,7 @@
             <h2 style="font-size:14px; color:#fff;">Getting Started</h2>
             <span id="close-getting-started" class="modal-close">✕</span>
         </div>
-        <div class="info-row"><b>1.</b> Install <b>Phantom</b> (preferred), <b>Solflare</b>, or use a mobile dApp browser.</div>
+        <div class="info-row"><b>1.</b> Install <b>Phantom</b>, <b>Solflare</b>, or <b>MetaMask</b> (requires <a href="https://snaps.metamask.io/snap/npm/metamask/solana-snap/" target="_blank" style="color:#fff; text-decoration:underline;">Solana Snap</a>).</div>
         <div class="info-row"><b>2.</b> Open this app and click <b>Connect Wallet</b>.</div>
         <div class="info-row"><b>3.</b> Set daily limits + enforcement period, then click <b>Sign &amp; Burn Rules</b>.</div>
         <div class="info-row"><b>4.</b> Deposit SOL/USDC into the vault, then withdraw within limits.</div>
@@ -808,7 +808,44 @@ function findProvider() {
     }
     if (window.solana) return window.solana;
     if (window.solflare) return window.solflare;
+    if (window.ethereum?.isMetaMask) return { isMetaMask: true };
     return null;
+}
+async function connectMetaMaskSnap() {
+    const snapId = 'npm:@metamask/solana-snap';
+    try {
+        await window.ethereum.request({
+            method: 'wallet_requestSnaps',
+            params: { [snapId]: {} }
+        });
+        const pk = await window.ethereum.request({
+            method: 'wallet_invokeSnap',
+            params: { snapId, request: { method: 'getPublicKey' } }
+        });
+        return {
+            isMetaMask: true,
+            publicKey: new PublicKey(pk),
+            connect: async () => {},
+            signTransaction: async (tx) => {
+                const txData = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
+                const base64Tx = btoa(String.fromCharCode.apply(null, txData));
+                const result = await window.ethereum.request({
+                    method: 'wallet_invokeSnap',
+                    params: {
+                        snapId,
+                        request: {
+                            method: 'signTransaction',
+                            params: { transaction: base64Tx }
+                        }
+                    }
+                });
+                return Transaction.from(Uint8Array.from(atob(result.transaction), c => c.charCodeAt(0)));
+            }
+        };
+    } catch (e) {
+        console.error("MetaMask Snap Error:", e);
+        throw new Error("MetaMask Solana Snap failed. Ensure Snap is installed.");
+    }
 }
 function unlock(id) { const e = document.getElementById(id); e.classList.remove('locked'); e.classList.add('active'); }
 function markDone(id) { const e = document.getElementById(id); e.classList.remove('active'); e.classList.add('done'); }
@@ -1371,16 +1408,22 @@ const detectInterval = setInterval(() => {
     let lbl = 'Connect Wallet';
     if (p.isPhantom) lbl = 'Connect Phantom';
     else if (p.isSolflare || window.solflare) lbl = 'Connect Solflare';
+    else if (p.isMetaMask) lbl = 'Connect MetaMask';
     document.getElementById('connect-btn-top').innerText  = lbl;
     document.getElementById('connect-btn-tile').innerText = lbl;
 }, 600);
 
 async function doConnect() {
     try {
-        const provider = findProvider();
+        let provider = findProvider();
         if (!provider) { setStatus('s1-status', 'No wallet found.', 'err'); return; }
+        
         setStatus('s1-status', 'Connecting...');
-        await provider.connect();
+        if (provider.isMetaMask) {
+            provider = await connectMetaMaskSnap();
+        } else {
+            await provider.connect();
+        }
         walletPubkey   = new PublicKey(provider.publicKey.toString());
         walletProvider = provider;
         clearInterval(detectInterval);
