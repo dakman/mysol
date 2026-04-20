@@ -10,6 +10,15 @@
 
 ---
 
+## 🆕 Latest Features (v7.4)
+
+*   **⏱️ Real-Time Reset Countdowns**: The dashboard now displays a live countdown timer showing exactly when your daily spending limit will reset (24 hours after your last withdrawal).
+*   **🔌 Expanded Wallet Support**: Improved detection for **Solflare**, **Brave**, and in-app mobile browsers. The connection buttons now intelligently detect and label your active wallet.
+*   **📱 Mobile Optimized Onboarding**: Simplified "Getting Started" flow specifically tailored for mobile dApp users.
+*   **🔒 Permanent Immutability**: Program upgrade authority has been permanently revoked (`Authority: none`).
+
+---
+
 ## 🔎 How It Works
 
 * 🔒 **Program Derived Vault (PDA)** — your vault address is derived on-chain from fixed seeds: `"vault"` + your wallet pubkey + `"v2"`. Same wallet, same vault for this program.
