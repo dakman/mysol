@@ -69,6 +69,7 @@
         .stat-value.warn   { color: #ddd; }
         .stat-value.danger { color: #fff; }
         .stat-value.usdc   { color: #fff; }
+        .stat-usd { font-size: 10px; color: #888; margin-top: 1px; font-weight: 500; }
 
         /* ── Progress ── */
         .prog-wrap { background: var(--border); border-radius: 3px; height: 3px; overflow: hidden; margin-top: 5px; }
@@ -365,18 +366,22 @@
                     <div class="stat">
                         <div class="stat-label">Wallet SOL</div>
                         <div class="stat-value" id="s-wsol">—</div>
+                        <div class="stat-usd" id="s-wsol-usd"></div>
                     </div>
                     <div class="stat">
                         <div class="stat-label">Vault SOL</div>
                         <div class="stat-value good" id="s-vsol">—</div>
+                        <div class="stat-usd" id="s-vsol-usd"></div>
                     </div>
                     <div class="stat">
                         <div class="stat-label">Wallet USDC</div>
                         <div class="stat-value usdc" id="s-wusdc">—</div>
+                        <div class="stat-usd" id="s-wusdc-usd"></div>
                     </div>
                     <div class="stat">
                         <div class="stat-label">Vault USDC</div>
                         <div class="stat-value usdc" id="s-vusdc">—</div>
+                        <div class="stat-usd" id="s-vusdc-usd"></div>
                     </div>
                     <div class="stat wide" id="total-value-stat" style="border-color:var(--success); margin-top:5px;">
                         <div class="stat-label">Total Vault Value (USD)</div>
@@ -1411,6 +1416,15 @@ async function refreshVaultUI() {
     document.getElementById('s-vsol').innerText  = solFmt(d.balanceLamports);
     document.getElementById('s-wusdc').innerText = usdcFmt(walletUsdcMicro);
     document.getElementById('s-vusdc').innerText = usdcFmt(vaultUsdcMicro);
+
+    const solPrice = await getSolPrice();
+    const wSolUsd = (Number(walletSolLam) / 1e9) * solPrice;
+    const vSolUsd = (Number(d.balanceLamports) / 1e9) * solPrice;
+    
+    document.getElementById('s-wsol-usd').innerText = `≈ $${wSolUsd.toLocaleString(undefined, {maximumFractionDigits:2})}`;
+    document.getElementById('s-vsol-usd').innerText = `≈ $${vSolUsd.toLocaleString(undefined, {maximumFractionDigits:2})}`;
+    document.getElementById('s-wusdc-usd').innerText = `≈ $${(Number(walletUsdcMicro)/1e6).toLocaleString(undefined, {maximumFractionDigits:2})}`;
+    document.getElementById('s-vusdc-usd').innerText = `≈ $${(Number(vaultUsdcMicro)/1e6).toLocaleString(undefined, {maximumFractionDigits:2})}`;
 
     const pSol = document.getElementById('hdr-prog-sol');
     pSol.style.width = Math.min(solPct, 100) + '%';
