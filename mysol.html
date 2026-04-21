@@ -738,15 +738,18 @@ function fmtClockTime(secondsBig) {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 function fmtExpiryDate(secondsBig) {
-    const ms = Number(secondsBig) * 1000;
+    const s = BigInt(secondsBig);
+    // If > year 3000, treat as permanent/far future
+    if (s > 32503680000n) return 'Far Future';
+    const ms = Number(s) * 1000;
     const dt = new Date(ms);
+    if (isNaN(dt.getTime())) return 'Invalid';
     return dt.toLocaleString([], {
         year: 'numeric',
         month: 'short',
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit',
         hour12: true,
     });
 }
@@ -759,7 +762,12 @@ function renderEnforcementStatus() {
     if (isActive) {
         const secondsLeft = vaultData.expiryDate - nowSec;
         const expiryAt = fmtExpiryDate(vaultData.expiryDate);
-        expEl.innerText = `🔒 Active — ${fmtClockTime(secondsLeft)} left (expires ${expiryAt})`;
+        // If it's more than 10 years away, call it "Permanent"
+        if (secondsLeft > 315360000n) {
+            expEl.innerText = `🔒 Active — Permanent Enforcement (until ${expiryAt})`;
+        } else {
+            expEl.innerText = `🔒 Active — ${fmtClockTime(secondsLeft)} left (expires ${expiryAt})`;
+        }
         expEl.className = 'pda-enf warn';
     } else {
         expEl.innerText = '✓ Expired — withdraw freely';
@@ -1229,12 +1237,18 @@ async function fetchHistory() {
 let vaultChart = null;
 async function getSolPrice() {
     try {
-        const res = await fetch('https://api.jup.ag/price/v2?ids=So11111111111111111111111111111111111111112');
-        const json = await res.json();
-        return parseFloat(json.data['So11111111111111111111111111111111111111112'].price);
+        // Try CoinGecko first (more reliable for public use)
+        const cgRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+        const cgJson = await cgRes.json();
+        if (cgJson.solana?.usd) return cgJson.solana.usd;
+        
+        // Fallback to Jupiter v2 if available
+        const jupRes = await fetch('https://api.jup.ag/price/v2?ids=So11111111111111111111111111111111111111112');
+        const jupJson = await jupRes.json();
+        return parseFloat(jupJson.data['So11111111111111111111111111111111111111112'].price);
     } catch(e) {
-        console.warn("Price fetch error:", e);
-        return 0;
+        console.warn("Price fetch error, using fallback $100:", e);
+        return 100; // Better than $0 for UI visualization
     }
 }
 
