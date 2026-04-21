@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v7.6</title>
+    <title>MySOL | Spending Vault v7.7</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --sol: #eb5424;
@@ -247,7 +248,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v7.6</h1>
+            <h1>MySOL Vault v7.7</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -377,6 +378,17 @@
                         <div class="stat-label">Vault USDC</div>
                         <div class="stat-value usdc" id="s-vusdc">—</div>
                     </div>
+                    <div class="stat wide" id="total-value-stat" style="border-color:var(--success); margin-top:5px;">
+                        <div class="stat-label">Total Vault Value (USD)</div>
+                        <div class="stat-value" id="s-total-usd" style="font-size:18px; color:var(--success);">—</div>
+                    </div>
+                </div>
+                <div id="vault-chart-container" style="display:none; margin-top:10px; height:180px; position:relative;">
+                    <canvas id="vault-chart"></canvas>
+                </div>
+                <div id="vault-history-container" style="display:none; margin-top:10px; height:180px; position:relative;">
+                    <div class="stat-label" style="text-align:center; margin-bottom:5px;">Balance History (Est. USD)</div>
+                    <canvas id="vault-history-chart"></canvas>
                 </div>
             </div>
         </div>
@@ -443,8 +455,22 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v7.3 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
+        MySOL Vault v7.7 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
+    </div>
+</div>
+
+<div id="wallet-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 320px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <h2 style="font-size:14px; color:#fff;">Select Wallet</h2>
+            <span id="close-wallet-modal" class="modal-close">✕</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <button id="select-phantom" class="btn btn-sol" style="display:none; background:#ab9ff2; color:#000;">Connect Phantom</button>
+            <button id="select-solflare" class="btn btn-sol" style="display:none; background:#ff8000; color:#000;">Connect Solflare</button>
+            <div id="no-wallets-msg" style="display:none; font-size:11px; color:#aaa; text-align:center; padding:10px;">No wallet extensions detected.</div>
+        </div>
     </div>
 </div>
 
@@ -629,6 +655,9 @@ document.getElementById('open-rpc-modal').addEventListener('click', (e) => {
 document.getElementById('close-rpc-modal').addEventListener('click', () => {
     document.getElementById('rpc-modal').style.display = 'none';
 });
+document.getElementById('close-wallet-modal').addEventListener('click', () => {
+    document.getElementById('wallet-modal').style.display = 'none';
+});
 function syncRpcModal() {
     const networkLabel = currentNetwork === 'devnet' ? 'Devnet RPC URL' : 'Mainnet RPC URL';
     const override = getStoredRpcOverride(currentNetwork);
@@ -811,16 +840,27 @@ async function refreshWalletBalancesUI() {
         console.warn('Wallet balance refresh failed', e);
     }
 }
-function findProvider() {
-    if (window.solana?.isPhantom)    return window.solana;
-    if (window.solflare?.isSolflare) return window.solflare;
-    if (window.solana?.providers?.length) {
-        return window.solana.providers.find(p => p.isPhantom) || window.solana.providers[0];
+function getProviders() {
+    const res = [];
+    const sol = window.solana;
+    const ph = window.phantom?.solana;
+    const sf = window.solflare;
+
+    if (ph?.isPhantom) res.push({ name: 'Phantom', p: ph });
+    else if (sol?.isPhantom) res.push({ name: 'Phantom', p: sol });
+
+    if (sf?.isSolflare) res.push({ name: 'Solflare', p: sf });
+    else if (sol?.isSolflare) res.push({ name: 'Solflare', p: sol });
+
+    if (sol?.providers?.length) {
+        sol.providers.forEach(p => {
+            if (p.isPhantom && !res.find(x => x.name === 'Phantom')) res.push({ name: 'Phantom', p });
+            if (p.isSolflare && !res.find(x => x.name === 'Solflare')) res.push({ name: 'Solflare', p });
+        });
     }
-    if (window.solana) return window.solana;
-    if (window.solflare) return window.solflare;
-    return null;
+    return res;
 }
+
 function unlock(id) { const e = document.getElementById(id); e.classList.remove('locked'); e.classList.add('active'); }
 function markDone(id) { const e = document.getElementById(id); e.classList.remove('active'); e.classList.add('done'); }
 
@@ -959,7 +999,7 @@ async function readVault() {
 async function fetchHistory() {
     if (!vaultPDA) return;
     try {
-        const sigs = await connection.getSignaturesForAddress(vaultPDA, { limit: 4 });
+        const sigs = await connection.getSignaturesForAddress(vaultPDA, { limit: 10 });
         const el = document.getElementById('tx-history');
         const moreLink = document.getElementById('history-more-link');
         const clusterStr = currentNetwork === 'devnet' ? '?cluster=devnet' : '';
@@ -972,6 +1012,9 @@ async function fetchHistory() {
             return; 
         }
         
+        const solPrice = await getSolPrice();
+        const historyPoints = [];
+
         const toHex = (u8) => Array.from(u8).map(b => b.toString(16).padStart(2, '0')).join('');
         const dInitializeHex = toHex(await disc('initialize_vault'));
         const dWithdrawSolHex = toHex(await disc('withdraw_sol'));
@@ -1002,6 +1045,27 @@ async function fetchHistory() {
                     commitment: 'confirmed',
                     maxSupportedTransactionVersion: 0,
                 });
+                
+                // History data collection
+                const msgKeys = tx?.transaction?.message?.accountKeys || [];
+                const keyStrs = msgKeys.map(k => (typeof k === 'string' ? k : (k?.pubkey?.toBase58?.() || k?.toBase58?.() || '')));
+                const vaultIdx = keyStrs.findIndex(k => k === vaultPDA.toBase58());
+                if (vaultIdx >= 0 && tx?.meta?.postBalances) {
+                    const solAfter = Number(tx.meta.postBalances[vaultIdx]) / 1e9;
+                    
+                    // Token balances
+                    let usdcAfter = 0;
+                    const mint = getUsdcMint();
+                    const postTok = tx.meta.postTokenBalances || [];
+                    for (const b of postTok) {
+                        if (b?.mint === mint && b?.owner === vaultPDA.toBase58()) {
+                            usdcAfter = Number(b?.uiTokenAmount?.amount || '0') / 1e6;
+                            break;
+                        }
+                    }
+                    historyPoints.push({ time: timeStr, val: (solAfter * solPrice) + usdcAfter });
+                }
+
                 const ixs = tx?.transaction?.message?.instructions || [];
                 for (const ix of ixs) {
                     const pid = ix?.programId?.toBase58?.() || ix?.programId?.toString?.() || ix?.programId || '';
@@ -1156,9 +1220,124 @@ async function fetchHistory() {
                 </div>`;
             el.appendChild(row);
         }
+        updateHistoryChart(historyPoints);
     } catch(e) { 
         console.error("History fetch error", e); 
     }
+}
+
+let vaultChart = null;
+async function getSolPrice() {
+    try {
+        const res = await fetch('https://api.jup.ag/price/v2?ids=So11111111111111111111111111111111111111112');
+        const json = await res.json();
+        return parseFloat(json.data['So11111111111111111111111111111111111111112'].price);
+    } catch(e) {
+        console.warn("Price fetch error:", e);
+        return 0;
+    }
+}
+
+async function updateVaultValueAndChart(vaultSolLam, vaultUsdcMicro) {
+    const solPrice = await getSolPrice();
+    const solVal = (Number(vaultSolLam) / 1e9) * solPrice;
+    const usdcVal = Number(vaultUsdcMicro) / 1e6;
+    const total = solVal + usdcVal;
+
+    document.getElementById('s-total-usd').innerText = '$' + total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    
+    const container = document.getElementById('vault-chart-container');
+    container.style.display = 'block';
+    
+    const ctx = document.getElementById('vault-chart').getContext('2d');
+    if (vaultChart) vaultChart.destroy();
+
+    vaultChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['SOL Value ($)', 'USDC Value ($)'],
+            datasets: [{
+                data: [solVal, usdcVal],
+                backgroundColor: ['#eb5424', '#2775ca'],
+                hoverOffset: 4,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#aaa', font: { size: 10, weight: '600' } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return ` ${context.label}: $${context.raw.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                        }
+                    }
+                }
+            },
+            cutout: '75%'
+        }
+    });
+}
+
+let vaultHistoryChart = null;
+async function updateHistoryChart(points) {
+    if (!points || points.length === 0) return;
+    const container = document.getElementById('vault-history-container');
+    container.style.display = 'block';
+    
+    const ctx = document.getElementById('vault-history-chart').getContext('2d');
+    if (vaultHistoryChart) vaultHistoryChart.destroy();
+
+    // Reverse to show oldest to newest
+    const dataPoints = [...points].reverse();
+
+    vaultHistoryChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dataPoints.map(p => p.time.split(',')[0]), // Short date
+            datasets: [{
+                label: 'Vault Value ($)',
+                data: dataPoints.map(p => p.val),
+                borderColor: '#14F195',
+                backgroundColor: 'rgba(20, 241, 149, 0.1)',
+                borderWidth: 2,
+                pointRadius: 3,
+                pointBackgroundColor: '#14F195',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    grid: { color: '#222' },
+                    ticks: { color: '#888', font: { size: 9 }, callback: (v) => '$' + v.toLocaleString() }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#888', font: { size: 9 }, maxRotation: 45, minRotation: 45 }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return ` Value: $${context.raw.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
 }
 
 async function refreshVaultUI() {
@@ -1255,6 +1434,9 @@ async function refreshVaultUI() {
         : 'Wallet: ' + usdcFmt(walletUsdcMicro);
 
     updateWdHint(solRem, usdcRem, d.dailyLimitSol, d.dailyLimitUsdc, isActive);
+
+    // Update the Value Chart
+    updateVaultValueAndChart(d.balanceLamports, vaultUsdcMicro);
 }
 
 async function refreshVaultUIThrottled(force = false) {
@@ -1377,19 +1559,51 @@ document.getElementById('network').addEventListener('change', async () => {
 });
 
 const detectInterval = setInterval(() => {
-    const p = findProvider();
-    if (!p) return;
-    let lbl = 'Connect Wallet';
-    if (p.isPhantom) lbl = 'Connect Phantom';
-    else if (p.isSolflare || window.solflare) lbl = 'Connect Solflare';
+    const ps = getProviders();
+    if (ps.length === 0) return;
+    let lbl = ps.length > 1 ? 'Connect Wallet' : `Connect ${ps[0].name}`;
     document.getElementById('connect-btn-top').innerText  = lbl;
     document.getElementById('connect-btn-tile').innerText = lbl;
 }, 600);
 
+function showWalletModal(providers) {
+    const modal = document.getElementById('wallet-modal');
+    const phBtn = document.getElementById('select-phantom');
+    const sfBtn = document.getElementById('select-solflare');
+    const none  = document.getElementById('no-wallets-msg');
+    
+    phBtn.style.display = 'none';
+    sfBtn.style.display = 'none';
+    none.style.display = 'none';
+
+    providers.forEach(p => {
+        if (p.name === 'Phantom') {
+            phBtn.style.display = 'block';
+            phBtn.onclick = () => { modal.style.display='none'; connectWithProvider(p.p); };
+        }
+        if (p.name === 'Solflare') {
+            sfBtn.style.display = 'block';
+            sfBtn.onclick = () => { modal.style.display='none'; connectWithProvider(p.p); };
+        }
+    });
+    
+    if (providers.length === 0) none.style.display = 'block';
+    modal.style.display = 'flex';
+}
+
 async function doConnect() {
+    const ps = getProviders();
+    if (ps.length === 0) { setStatus('s1-status', 'No wallet found.', 'err'); return; }
+    if (ps.length === 1) {
+        await connectWithProvider(ps[0].p);
+    } else {
+        showWalletModal(ps);
+    }
+}
+
+async function connectWithProvider(provider) {
     try {
-        const provider = findProvider();
-        if (!provider) { setStatus('s1-status', 'No wallet found.', 'err'); return; }
+        if (!provider) { setStatus('s1-status', 'Provider error.', 'err'); return; }
         
         setStatus('s1-status', 'Connecting...');
         await provider.connect();
