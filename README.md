@@ -127,3 +127,9 @@ MySOL Vault handles both native Solana and SPL Tokens (specifically USDC).
 # No dependencies required to view the UI
 open mysol.html
 ```
+
+---
+
+## License
+
+This project is licensed under the [MIT License](./LICENSE).
