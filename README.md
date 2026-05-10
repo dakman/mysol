@@ -132,4 +132,4 @@ open mysol.html
 
 ## License
 
-This project is licensed under the [MIT License](./LICENSE).
+This project is released into the public domain under [The Unlicense](./LICENSE). Use it at your own risk.
