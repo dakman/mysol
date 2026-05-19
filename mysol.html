@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v8.1</title>
+    <title>MySOL | Spending Vault v8.2</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -249,7 +249,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v8.1</h1>
+            <h1>MySOL Vault v8.2</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -392,7 +392,7 @@
                     </div>
                 </div>
                 <div id="vault-history-container" style="display:none; margin-top:10px; height:180px; position:relative;">
-                    <div class="stat-label" style="text-align:center; margin-bottom:5px;">Balance History (SOL + USDC)</div>
+                    <div class="stat-label" style="text-align:center; margin-bottom:5px;">Balance History (USD)</div>
                     <canvas id="vault-history-chart"></canvas>
                 </div>
             </div>
@@ -460,7 +460,7 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v8.1 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
+        MySOL Vault v8.2 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -1324,56 +1324,26 @@ async function updateHistoryChart(points) {
         type: 'line',
         data: {
             labels: dataPoints.map(p => p.time.split(',')[0]), // Short date
-            datasets: [
-                {
-                    label: 'SOL',
-                    data: dataPoints.map(p => p.sol),
-                    borderColor: '#9945FF',
-                    backgroundColor: 'rgba(153, 69, 255, 0.12)',
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    pointBackgroundColor: '#9945FF',
-                    yAxisID: 'sol',
-                    tension: 0.4
-                },
-                {
-                    label: 'USDC',
-                    data: dataPoints.map(p => p.usdc),
-                    borderColor: '#2775CA',
-                    backgroundColor: 'rgba(39, 117, 202, 0.12)',
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    pointBackgroundColor: '#2775CA',
-                    yAxisID: 'usdc',
-                    tension: 0.4
-                }
-            ]
+            datasets: [{
+                label: 'Vault Value',
+                data: dataPoints.map(p => p.usd),
+                borderColor: '#14F195',
+                backgroundColor: 'rgba(20, 241, 149, 0.12)',
+                borderWidth: 2,
+                pointRadius: 3,
+                pointBackgroundColor: '#14F195',
+                fill: true,
+                tension: 0.4
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                sol: {
-                    type: 'linear',
-                    position: 'left',
+                y: {
                     beginAtZero: false,
                     grid: { color: '#222' },
-                    ticks: {
-                        color: '#9945FF',
-                        font: { size: 9 },
-                        callback: (v) => Number(v).toLocaleString(undefined, { maximumFractionDigits: 4 }) + ' SOL'
-                    }
-                },
-                usdc: {
-                    type: 'linear',
-                    position: 'right',
-                    beginAtZero: false,
-                    grid: { drawOnChartArea: false },
-                    ticks: {
-                        color: '#2775CA',
-                        font: { size: 9 },
-                        callback: (v) => Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' USDC'
-                    }
+                    ticks: { color: '#888', font: { size: 9 }, callback: (v) => '$' + Number(v).toLocaleString() }
                 },
                 x: {
                     grid: { display: false },
@@ -1381,24 +1351,21 @@ async function updateHistoryChart(points) {
                 }
             },
             plugins: {
-                legend: {
-                    display: true,
-                    labels: { color: '#aaa', boxWidth: 10, font: { size: 10 } }
-                },
+                legend: { display: false },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
                             const value = Number(context.raw);
-                            if (context.dataset.label === 'SOL') {
-                                return ` SOL: ${value.toLocaleString(undefined, { maximumFractionDigits: 6 })}`;
-                            }
-                            return ` USDC: ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                            return ` Value: $${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                         },
                         afterBody: function(items) {
                             const idx = items?.[0]?.dataIndex;
                             if (idx == null) return '';
                             const point = dataPoints[idx];
-                            return `Total value: $${point.usd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                            return [
+                                `SOL: ${point.sol.toLocaleString(undefined, { maximumFractionDigits: 6 })}`,
+                                `USDC: ${point.usdc.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            ];
                         }
                     }
                 }
