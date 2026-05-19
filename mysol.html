@@ -1019,7 +1019,19 @@ async function readVault() {
 async function fetchHistory() {
     if (!vaultPDA) return;
     try {
-        const sigs = await connection.getSignaturesForAddress(vaultPDA, { limit: 10 });
+        const vaultAtaStd = await deriveATA(vaultPDA, getUsdcMint(), SPL_TOKEN);
+        const sigResults = await Promise.allSettled([
+            connection.getSignaturesForAddress(vaultPDA, { limit: 10 }),
+            connection.getSignaturesForAddress(vaultAtaStd, { limit: 10 }),
+        ]);
+        const sigs = Array.from(
+            new Map(
+                sigResults
+                    .flatMap(r => r.status === 'fulfilled' ? r.value : [])
+                    .sort((a, b) => (b.blockTime || 0) - (a.blockTime || 0))
+                    .map(s => [s.signature, s])
+            ).values()
+        ).slice(0, 10);
         const el = document.getElementById('tx-history');
         const moreLink = document.getElementById('history-more-link');
         const clusterStr = currentNetwork === 'devnet' ? '?cluster=devnet' : '';
@@ -1032,7 +1044,6 @@ async function fetchHistory() {
             return; 
         }
         
-        const solPrice = await getSolPrice();
         const historyPoints = [];
 
         const toHex = (u8) => Array.from(u8).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -1042,7 +1053,7 @@ async function fetchHistory() {
         const dCloseHex = toHex(await disc('close_vault'));
         const dResetHex = toHex(await disc('reset_vault_devnet'));
         const dEndHex = toHex(await disc('end_enforcement_devnet'));
-        const vaultAtaStd = (await deriveATA(vaultPDA, getUsdcMint(), SPL_TOKEN)).toBase58();
+        const vaultAtaStdStr = vaultAtaStd.toBase58();
 
         for (const s of sigs) {
             const row = document.createElement('div');
@@ -1069,21 +1080,35 @@ async function fetchHistory() {
                 // History data collection
                 const msgKeys = tx?.transaction?.message?.accountKeys || [];
                 const keyStrs = msgKeys.map(k => (typeof k === 'string' ? k : (k?.pubkey?.toBase58?.() || k?.toBase58?.() || '')));
-                const vaultIdx = keyStrs.findIndex(k => k === vaultPDA.toBase58());
-                if (vaultIdx >= 0 && tx?.meta?.postBalances) {
-                    const solAfter = Number(tx.meta.postBalances[vaultIdx]) / 1e9;
+                const vaultAddr = vaultPDA.toBase58();
+                const vaultIdx = keyStrs.findIndex(k => k === vaultAddr);
+                const vaultAtaIdx = keyStrs.findIndex(k => k === vaultAtaStdStr);
+                if (tx?.meta) {
+                    const solAfter = vaultIdx >= 0 && tx.meta.postBalances
+                        ? Number(tx.meta.postBalances[vaultIdx]) / 1e9
+                        : null;
                     
                     // Token balances
-                    let usdcAfter = 0;
+                    let usdcAfter = null;
                     const mint = getUsdcMint();
                     const postTok = tx.meta.postTokenBalances || [];
                     for (const b of postTok) {
-                        if (b?.mint === mint && b?.owner === vaultPDA.toBase58()) {
+                        if (
+                            b?.mint === mint &&
+                            (b?.owner === vaultAddr || Number(b?.accountIndex) === vaultAtaIdx)
+                        ) {
                             usdcAfter = Number(b?.uiTokenAmount?.amount || '0') / 1e6;
                             break;
                         }
                     }
-                    historyPoints.push({ time: timeStr, val: (solAfter * solPrice) + usdcAfter });
+                    if (solAfter != null || usdcAfter != null) {
+                        historyPoints.push({
+                            time: timeStr,
+                            sol: solAfter,
+                            usdc: usdcAfter,
+                            usd: null,
+                        });
+                    }
                 }
 
                 const ixs = tx?.transaction?.message?.instructions || [];
@@ -1115,12 +1140,12 @@ async function fetchHistory() {
                         const src = info.source;
                         const dst = info.destination;
                         const amt = BigInt(info.amount);
-                        if (dst === vaultAtaStd) {
+                        if (dst === vaultAtaStdStr) {
                             actionLabel = `Deposit ${usdcShort(amt)}`;
                             amountLabel = '';
                             break;
                         }
-                        if (src === vaultAtaStd) {
+                        if (src === vaultAtaStdStr) {
                             actionLabel = `Withdraw ${usdcShort(amt)}`;
                             amountLabel = '';
                             break;
@@ -1282,33 +1307,73 @@ async function updateHistoryChart(points) {
     const ctx = document.getElementById('vault-history-chart').getContext('2d');
     if (vaultHistoryChart) vaultHistoryChart.destroy();
 
-    // Reverse to show oldest to newest
-    const dataPoints = [...points].reverse();
+    const solPrice = await getSolPrice();
+
+    // Reverse to show oldest to newest, then carry forward unchanged token balances.
+    let lastSol = null;
+    let lastUsdc = null;
+    const dataPoints = [...points].reverse().map(p => {
+        if (p.sol != null) lastSol = p.sol;
+        if (p.usdc != null) lastUsdc = p.usdc;
+        const sol = lastSol ?? 0;
+        const usdc = lastUsdc ?? 0;
+        return { ...p, sol, usdc, usd: (sol * solPrice) + usdc };
+    });
 
     vaultHistoryChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: dataPoints.map(p => p.time.split(',')[0]), // Short date
-            datasets: [{
-                label: 'Vault Value ($)',
-                data: dataPoints.map(p => p.val),
-                borderColor: '#14F195',
-                backgroundColor: 'rgba(20, 241, 149, 0.1)',
-                borderWidth: 2,
-                pointRadius: 3,
-                pointBackgroundColor: '#14F195',
-                fill: true,
-                tension: 0.4
-            }]
+            datasets: [
+                {
+                    label: 'SOL',
+                    data: dataPoints.map(p => p.sol),
+                    borderColor: '#9945FF',
+                    backgroundColor: 'rgba(153, 69, 255, 0.12)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#9945FF',
+                    yAxisID: 'sol',
+                    tension: 0.4
+                },
+                {
+                    label: 'USDC',
+                    data: dataPoints.map(p => p.usdc),
+                    borderColor: '#2775CA',
+                    backgroundColor: 'rgba(39, 117, 202, 0.12)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#2775CA',
+                    yAxisID: 'usdc',
+                    tension: 0.4
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: {
+                sol: {
+                    type: 'linear',
+                    position: 'left',
                     beginAtZero: false,
                     grid: { color: '#222' },
-                    ticks: { color: '#888', font: { size: 9 }, callback: (v) => '$' + v.toLocaleString() }
+                    ticks: {
+                        color: '#9945FF',
+                        font: { size: 9 },
+                        callback: (v) => Number(v).toLocaleString(undefined, { maximumFractionDigits: 4 }) + ' SOL'
+                    }
+                },
+                usdc: {
+                    type: 'linear',
+                    position: 'right',
+                    beginAtZero: false,
+                    grid: { drawOnChartArea: false },
+                    ticks: {
+                        color: '#2775CA',
+                        font: { size: 9 },
+                        callback: (v) => Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' USDC'
+                    }
                 },
                 x: {
                     grid: { display: false },
@@ -1316,11 +1381,24 @@ async function updateHistoryChart(points) {
                 }
             },
             plugins: {
-                legend: { display: false },
+                legend: {
+                    display: true,
+                    labels: { color: '#aaa', boxWidth: 10, font: { size: 10 } }
+                },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return ` Value: $${context.raw.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                            const value = Number(context.raw);
+                            if (context.dataset.label === 'SOL') {
+                                return ` SOL: ${value.toLocaleString(undefined, { maximumFractionDigits: 6 })}`;
+                            }
+                            return ` USDC: ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                        },
+                        afterBody: function(items) {
+                            const idx = items?.[0]?.dataIndex;
+                            if (idx == null) return '';
+                            const point = dataPoints[idx];
+                            return `Total value: $${point.usd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                         }
                     }
                 }
