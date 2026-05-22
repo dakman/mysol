@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v8.5</title>
+    <title>MySOL | Spending Vault v8.6</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -65,6 +65,12 @@
         .stat.wide { grid-column: 1 / -1; }
         .stat-label { font-size: 9px; color: #aaa; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; letter-spacing: 0.5px; }
         .stat-value { font-size: 13px; font-weight: 700; color: #fff; line-height: 1.2; }
+        .total-value-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+        .change-24h { text-align: right; font-size: 10px; line-height: 1.25; font-weight: 800; white-space: nowrap; }
+        .change-24h .change-label { color: #777; text-transform: uppercase; letter-spacing: 0.4px; }
+        .change-24h .change-val { color: #aaa; }
+        .change-24h.good .change-val { color: var(--success); }
+        .change-24h.bad .change-val { color: var(--sol); }
         .stat-value.good   { color: #fff; }
         .stat-value.warn   { color: #ddd; }
         .stat-value.danger { color: #fff; }
@@ -249,7 +255,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v8.5</h1>
+            <h1>MySOL Vault v8.6</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -387,7 +393,13 @@
                         <div class="stat-usd" id="s-vusdc-usd"></div>
                     </div>
                     <div class="stat wide" id="total-value-stat" style="border-color:var(--success); margin-top:5px;">
-                        <div class="stat-label">Total Vault Value (USD)</div>
+                        <div class="total-value-head">
+                            <div class="stat-label">Total Vault Value (USD)</div>
+                            <div class="change-24h" id="s-total-change-24h">
+                                <div class="change-label">24h</div>
+                                <div class="change-val">—</div>
+                            </div>
+                        </div>
                         <div class="stat-value" id="s-total-usd" style="font-size:18px; color:var(--success);">—</div>
                     </div>
                 </div>
@@ -460,7 +472,7 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v8.5 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
+        MySOL Vault v8.6 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -1305,9 +1317,36 @@ async function updateVaultValue(vaultSolLam, vaultUsdcMicro) {
     const total = solVal + usdcVal;
 
     document.getElementById('s-total-usd').innerText = '$' + total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    renderTotalChange24h(total);
 }
 
 let vaultHistoryChart = null;
+let latestChartPoints = [];
+let latestTotalVaultUsd = null;
+function renderTotalChange24h(currentTotalUsd = null) {
+    const el = document.getElementById('s-total-change-24h');
+    if (!el) return;
+    if (currentTotalUsd != null && Number.isFinite(currentTotalUsd)) latestTotalVaultUsd = currentTotalUsd;
+    const totalUsd = latestTotalVaultUsd;
+
+    const now = Date.now();
+    const dayAgo = now - 86400000;
+    const baseline = [...latestChartPoints].reverse().find(p => p.atMs && p.atMs <= dayAgo && Number.isFinite(p.usd));
+    if (!baseline || totalUsd == null || !Number.isFinite(totalUsd) || baseline.usd <= 0) {
+        el.className = 'change-24h';
+        el.innerHTML = '<div class="change-label">24h</div><div class="change-val">—</div>';
+        return;
+    }
+
+    const delta = totalUsd - baseline.usd;
+    const pct = (delta / baseline.usd) * 100;
+    const sign = delta > 0 ? '+' : delta < 0 ? '-' : '';
+    el.className = 'change-24h ' + (delta >= 0 ? 'good' : 'bad');
+    el.innerHTML = `
+        <div class="change-label">24h</div>
+        <div class="change-val">${sign}$${Math.abs(delta).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${sign}${Math.abs(pct).toFixed(2)}%)</div>
+    `;
+}
 async function updateHistoryChart(points, rangeDays = 30) {
     if (!points || points.length === 0) return;
     const container = document.getElementById('vault-history-container');
@@ -1341,9 +1380,12 @@ async function updateHistoryChart(points, rangeDays = 30) {
         days.set(point.dayKey, point);
         return days;
     }, new Map());
+    const firstPoint = normalizedPoints[0];
     const today = startOfLocalDay(new Date());
-    const rangeStart = new Date(today);
-    rangeStart.setDate(rangeStart.getDate() - rangeDays + 1);
+    const rangeStart = firstPoint ? startOfLocalDay(firstPoint.date) : today;
+    const earliestAllowed = new Date(today);
+    earliestAllowed.setDate(earliestAllowed.getDate() - rangeDays + 1);
+    if (rangeStart < earliestAllowed) rangeStart.setTime(earliestAllowed.getTime());
 
     const dataPoints = [];
     let carriedPoint = null;
@@ -1354,11 +1396,10 @@ async function updateHistoryChart(points, rangeDays = 30) {
     for (let day = new Date(rangeStart); day <= today; day.setDate(day.getDate() + 1)) {
         const key = dayKey(day);
         carriedPoint = latestPointByDay.get(key) || carriedPoint;
-        dataPoints.push(carriedPoint
-            ? { ...carriedPoint, day: dayLabel(day), dayKey: key }
-            : { day: dayLabel(day), dayKey: key, sol: 0, usdc: 0, usd: null }
-        );
+        if (carriedPoint) dataPoints.push({ ...carriedPoint, day: dayLabel(day), dayKey: key, atMs: new Date(day).getTime() });
     }
+    latestChartPoints = dataPoints;
+    renderTotalChange24h();
 
     vaultHistoryChart = new Chart(ctx, {
         type: 'line',

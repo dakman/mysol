@@ -10,7 +10,7 @@
 
 ---
 
-## 🆕 Latest Features (v8.5)
+## 🆕 Latest Features (v8.6)
 
 *   **🖥️ Split Platform Instructions**: Clear, separate onboarding paths for Desktop (Extension) and Mobile (In-App Browser).
 *   **📱 One-Click Mobile Onboarding**: Built-in **Copy URL** button to make it easy to paste the app into Phantom or Solflare.
