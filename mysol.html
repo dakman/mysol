@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v8.4</title>
+    <title>MySOL | Spending Vault v8.5</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -83,9 +83,6 @@
         .ttab { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: #aaa; font-size: 11px; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.15s; }
         .ttab.active-sol  { border-color: var(--sol); color: var(--sol); }
         .ttab.active-usdc { border-color: var(--usdc); color: var(--usdc); }
-        .chart-range-tabs { display: flex; justify-content: center; gap: 4px; margin-bottom: 6px; }
-        .chart-range-btn { flex: 0 1 58px; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border); background: #000; color: #aaa; font-size: 10px; font-weight: 800; cursor: pointer; }
-        .chart-range-btn.active { border-color: var(--success); color: var(--success); }
 
         /* ── Fields ── */
         .field { display: flex; flex-direction: column; gap: 4px; }
@@ -252,7 +249,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v8.4</h1>
+            <h1>MySOL Vault v8.5</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -396,12 +393,6 @@
                 </div>
                 <div id="vault-history-container" style="display:none; margin-top:10px; height:180px; position:relative;">
                     <div class="stat-label" style="text-align:center; margin-bottom:5px;">Daily Balance History (USD)</div>
-                    <div class="chart-range-tabs" id="chart-range-tabs">
-                        <button class="chart-range-btn active" data-days="30">1M</button>
-                        <button class="chart-range-btn" data-days="90">90D</button>
-                        <button class="chart-range-btn" data-days="180">6M</button>
-                        <button class="chart-range-btn" data-days="365">1Y</button>
-                    </div>
                     <canvas id="vault-history-chart"></canvas>
                 </div>
             </div>
@@ -469,7 +460,7 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v8.4 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
+        MySOL Vault v8.5 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -673,21 +664,11 @@ document.getElementById('close-wallet-modal').addEventListener('click', () => {
     document.getElementById('wallet-modal').style.display = 'none';
 });
 let chartsVisible = true;
-let chartRangeDays = 30;
 document.getElementById('toggle-charts').onclick = () => {
     chartsVisible = !chartsVisible;
     document.getElementById('toggle-charts').innerText = chartsVisible ? 'Hide Chart' : 'Show Chart';
     document.getElementById('vault-history-container').style.display = chartsVisible ? 'block' : 'none';
 };
-document.querySelectorAll('#chart-range-tabs .chart-range-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-        chartRangeDays = Number(btn.dataset.days) || 30;
-        document.querySelectorAll('#chart-range-tabs .chart-range-btn').forEach(b => {
-            b.classList.toggle('active', b === btn);
-        });
-        await fetchHistory();
-    });
-});
 
 function syncRpcModal() {
     const networkLabel = currentNetwork === 'devnet' ? 'Devnet RPC URL' : 'Mainnet RPC URL';
@@ -1038,11 +1019,13 @@ async function readVault() {
 async function fetchHistory() {
     if (!vaultPDA) return;
     try {
+        const RECENT_TX_LIMIT = 5;
+        const CHART_SIGNATURE_LIMIT = 30;
+        const CHART_DAYS = 30;
         const vaultAtaStd = await deriveATA(vaultPDA, getUsdcMint(), SPL_TOKEN);
-        const signatureLimit = Math.min(1000, Math.max(60, chartRangeDays * 4));
         const sigResults = await Promise.allSettled([
-            connection.getSignaturesForAddress(vaultPDA, { limit: signatureLimit }),
-            connection.getSignaturesForAddress(vaultAtaStd, { limit: signatureLimit }),
+            connection.getSignaturesForAddress(vaultPDA, { limit: CHART_SIGNATURE_LIMIT }),
+            connection.getSignaturesForAddress(vaultAtaStd, { limit: CHART_SIGNATURE_LIMIT }),
         ]);
         const sigs = Array.from(
             new Map(
@@ -1051,7 +1034,7 @@ async function fetchHistory() {
                     .sort((a, b) => (b.blockTime || 0) - (a.blockTime || 0))
                     .map(s => [s.signature, s])
             ).values()
-        ).slice(0, signatureLimit);
+        ).slice(0, CHART_SIGNATURE_LIMIT);
         const el = document.getElementById('tx-history');
         const moreLink = document.getElementById('history-more-link');
         const clusterStr = currentNetwork === 'devnet' ? '?cluster=devnet' : '';
@@ -1286,12 +1269,12 @@ async function fetchHistory() {
                         ${s.err ? '❌ FAILED' : '✅ SUCCESS'}
                     </span>
                 </div>`;
-            if (renderedRows < 10) {
+            if (renderedRows < RECENT_TX_LIMIT) {
                 el.appendChild(row);
                 renderedRows++;
             }
         }
-        updateHistoryChart(historyPoints);
+        updateHistoryChart(historyPoints, CHART_DAYS);
     } catch(e) { 
         console.error("History fetch error", e); 
     }
@@ -1325,7 +1308,7 @@ async function updateVaultValue(vaultSolLam, vaultUsdcMicro) {
 }
 
 let vaultHistoryChart = null;
-async function updateHistoryChart(points) {
+async function updateHistoryChart(points, rangeDays = 30) {
     if (!points || points.length === 0) return;
     const container = document.getElementById('vault-history-container');
     container.style.display = chartsVisible ? 'block' : 'none';
@@ -1360,7 +1343,7 @@ async function updateHistoryChart(points) {
     }, new Map());
     const today = startOfLocalDay(new Date());
     const rangeStart = new Date(today);
-    rangeStart.setDate(rangeStart.getDate() - chartRangeDays + 1);
+    rangeStart.setDate(rangeStart.getDate() - rangeDays + 1);
 
     const dataPoints = [];
     let carriedPoint = null;
@@ -1377,9 +1360,6 @@ async function updateHistoryChart(points) {
         );
     }
 
-    const pointRadius = chartRangeDays >= 180 ? 0 : chartRangeDays >= 90 ? 2 : 3;
-    const maxTicksLimit = chartRangeDays >= 365 ? 12 : chartRangeDays >= 180 ? 9 : chartRangeDays >= 90 ? 8 : 6;
-
     vaultHistoryChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -1390,7 +1370,7 @@ async function updateHistoryChart(points) {
                 borderColor: '#14F195',
                 backgroundColor: 'rgba(20, 241, 149, 0.12)',
                 borderWidth: 2,
-                pointRadius,
+                pointRadius: 3,
                 pointBackgroundColor: '#14F195',
                 fill: true,
                 tension: 0.4
@@ -1407,7 +1387,7 @@ async function updateHistoryChart(points) {
                 },
                 x: {
                     grid: { display: false },
-                    ticks: { color: '#888', font: { size: 9 }, autoSkip: true, maxTicksLimit, maxRotation: 45, minRotation: 45 }
+                    ticks: { color: '#888', font: { size: 9 }, autoSkip: true, maxTicksLimit: 6, maxRotation: 45, minRotation: 45 }
                 }
             },
             plugins: {
