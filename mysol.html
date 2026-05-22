@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v8.6</title>
+    <title>MySOL | Spending Vault v8.7</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -255,7 +255,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v8.6</h1>
+            <h1>MySOL Vault v8.7</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -472,7 +472,7 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v8.6 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
+        MySOL Vault v8.7 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -641,6 +641,7 @@ const tokenAccountCache = new Map();
 const statusFadeTimers = new Map();
 let enforcementTickerId = null;
 let vaultRentMinLamports = 0n;
+let vaultUsdcBalanceMicro = 0n;
 
 // Modal logic
 document.getElementById('open-getting-started').addEventListener('click', (e) => {
@@ -1492,6 +1493,7 @@ async function refreshVaultUI() {
         // Deep query the Vault PDA directly
         const vaultTokenInfo = await detectTokenProgram(vaultPDA, getUsdcMint());
         vaultUsdcMicro = vaultTokenInfo.balance;
+        vaultUsdcBalanceMicro = vaultUsdcMicro;
         
         vaultRentMinLamports = BigInt(await connection.getMinimumBalanceForRentExemption(128));
     } catch(e) {
@@ -1610,9 +1612,14 @@ function updateWdHint(solRem, usdcRem, solLimit, usdcLimit, isActive) {
     } else {
         const remUsdc   = Number(usdcRem) / 1e6;
         const limitUsdc = Number(usdcLimit) / 1e6;
-        hint.innerText = `Limit: ${limitUsdc.toFixed(2)} USDC/day — Available: ${remUsdc.toFixed(2)} USDC`;
+        const vaultUsdc = Number(vaultUsdcBalanceMicro) / 1e6;
+        const withdrawableUsdc = isActive ? Math.min(remUsdc, vaultUsdc) : vaultUsdc;
+        hint.innerText = `Limit: ${limitUsdc.toFixed(2)} USDC/day — Available: ${remUsdc.toFixed(2)} USDC — Withdrawable: ${withdrawableUsdc.toFixed(2)} USDC`;
         hint.className = 'hint usdc';
-        if (amount > remUsdc) {
+        if (amount > withdrawableUsdc) {
+            warning.style.display = 'block';
+            warning.innerHTML = `⛔ <strong>Will be rejected.</strong> Trying ${amount.toFixed(2)} USDC but max withdrawable is ${withdrawableUsdc.toFixed(2)} USDC.`;
+        } else if (amount > remUsdc) {
             warning.style.display = 'block';
             warning.innerHTML = `⛔ <strong>Will be rejected.</strong> Trying ${amount.toFixed(2)} USDC but only ${remUsdc.toFixed(2)} USDC available today.`;
         } else { warning.style.display = 'none'; }
