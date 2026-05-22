@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MySOL | Spending Vault v8.2</title>
+    <title>MySOL | Spending Vault v8.3</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -249,7 +249,7 @@
 
     <div class="topbar">
         <div>
-            <h1>MySOL Vault v8.2</h1>
+            <h1>MySOL Vault v8.3</h1>
             <div class="sub">Immutable spending rules · SOL + USDC</div>
         </div>
         <div class="topbar-right">
@@ -392,7 +392,7 @@
                     </div>
                 </div>
                 <div id="vault-history-container" style="display:none; margin-top:10px; height:180px; position:relative;">
-                    <div class="stat-label" style="text-align:center; margin-bottom:5px;">Balance History (USD)</div>
+                    <div class="stat-label" style="text-align:center; margin-bottom:5px;">Daily Balance History (USD)</div>
                     <canvas id="vault-history-chart"></canvas>
                 </div>
             </div>
@@ -460,7 +460,7 @@
 
     <div class="disclaimer"><span class="disc-label">⚠️ Disclaimer:</span> Use MySOL Vault at your own risk. Developer(s) are not liable for lost funds. <a id="open-disclaimer">View full disclaimer.</a></div>
     <div class="footer">
-        MySOL Vault v8.2 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
+        MySOL Vault v8.3 · Mainnet Live · Program: 2EHg4i...rSTRV · Mainnet USDC: EPjFWd...Dt1v ·
         <a href="https://github.com/dakman/mysol" target="_blank" style="color:#aaa; text-decoration:underline;">GitHub</a>
     </div>
 </div>
@@ -1031,7 +1031,7 @@ async function fetchHistory() {
                     .sort((a, b) => (b.blockTime || 0) - (a.blockTime || 0))
                     .map(s => [s.signature, s])
             ).values()
-        ).slice(0, 10);
+        ).slice(0, 30);
         const el = document.getElementById('tx-history');
         const moreLink = document.getElementById('history-more-link');
         const clusterStr = currentNetwork === 'devnet' ? '?cluster=devnet' : '';
@@ -1103,6 +1103,7 @@ async function fetchHistory() {
                     }
                     if (solAfter != null || usdcAfter != null) {
                         historyPoints.push({
+                            day: s.blockTime ? new Date(s.blockTime * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : timeStr.split(',')[0],
                             time: timeStr,
                             sol: solAfter,
                             usdc: usdcAfter,
@@ -1309,21 +1310,27 @@ async function updateHistoryChart(points) {
 
     const solPrice = await getSolPrice();
 
-    // Reverse to show oldest to newest, then carry forward unchanged token balances.
+    // Reverse to show oldest to newest, carry balances forward, then keep one value per day.
     let lastSol = null;
     let lastUsdc = null;
-    const dataPoints = [...points].reverse().map(p => {
+    const normalizedPoints = [...points].reverse().map(p => {
         if (p.sol != null) lastSol = p.sol;
         if (p.usdc != null) lastUsdc = p.usdc;
         const sol = lastSol ?? 0;
         const usdc = lastUsdc ?? 0;
         return { ...p, sol, usdc, usd: (sol * solPrice) + usdc };
     });
+    const dataPoints = Array.from(
+        normalizedPoints.reduce((days, point) => {
+            days.set(point.day || point.time.split(',')[0], point);
+            return days;
+        }, new Map()).values()
+    );
 
     vaultHistoryChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: dataPoints.map(p => p.time.split(',')[0]), // Short date
+            labels: dataPoints.map(p => p.day || p.time.split(',')[0]),
             datasets: [{
                 label: 'Vault Value',
                 data: dataPoints.map(p => p.usd),
